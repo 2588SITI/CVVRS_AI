@@ -302,7 +302,7 @@ export default function App() {
         : MASTER_PROMPT;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-pro-preview",
+        model: "gemini-3-flash-preview",
         contents: [
           {
             parts: [
@@ -320,7 +320,13 @@ export default function App() {
       setReport(response.text);
     } catch (err: any) {
       console.error("Analysis Error:", err);
-      setError(err.message || "An unexpected error occurred during analysis.");
+      let errorMessage = err.message || "An unexpected error occurred during analysis.";
+      
+      if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota") || errorMessage.toLowerCase().includes("rate limit")) {
+        errorMessage = "AI Quota Exceeded: The system is currently handling too many requests. Please wait about 30-60 seconds and try again. Switching to a faster engine for your next attempt.";
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
       setProgress(100);
