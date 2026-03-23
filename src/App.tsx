@@ -302,9 +302,10 @@ export default function App() {
     setProgress(0);
 
     try {
-      const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+      const apiKey = userApiKey;
       if (!apiKey) {
-        throw new Error("API Key is missing. Please add your own Gemini API key in Settings to proceed.");
+        setShowSettings(true);
+        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. Please enter yours in the settings window that just opened.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
