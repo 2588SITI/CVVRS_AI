@@ -210,7 +210,7 @@ export default function App() {
     } catch (err: any) {
       console.error("Sign-In Error:", err);
       if (err.code === 'auth/unauthorized-domain') {
-        setError("Sign-In Failed: This domain is not authorized in the Firebase Console. Please add your App URL to the 'Authorized Domains' list in Firebase Authentication settings.");
+        setError(`Sign-In Failed: This domain (${window.location.hostname}) is not authorized in the Firebase Console. Please double-check that this exact domain is added to the 'Authorized Domains' list in Firebase Authentication settings.`);
       } else if (err.code === 'auth/popup-blocked') {
         setError("Sign-In Failed: The login popup was blocked by your browser. Please allow popups for this site.");
       } else {
