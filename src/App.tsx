@@ -178,7 +178,16 @@ export default function App() {
       setIsAuthReady(true);
     });
 
-    // Fetch global corrections from Firestore on load
+    return () => unsubscribeAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setPastCorrections([]);
+      return;
+    }
+
+    // Fetch global corrections from Firestore when authenticated
     const q = query(collection(db, "corrections"), orderBy("timestamp", "desc"), limit(50));
     const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
@@ -187,11 +196,8 @@ export default function App() {
       handleFirestoreError(error, OperationType.LIST, "corrections");
     });
 
-    return () => {
-      unsubscribeAuth();
-      unsubscribeFirestore();
-    };
-  }, []);
+    return () => unsubscribeFirestore();
+  }, [user]);
 
   const saveApiKey = (key: string) => {
     setUserApiKey(key);

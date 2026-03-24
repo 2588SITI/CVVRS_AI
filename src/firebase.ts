@@ -15,9 +15,11 @@ async function testConnection() {
   try {
     await getDocsFromServer(query(collection(db, 'corrections'), limit(1)));
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('the client is offline')) {
       console.error("Please check your Firebase configuration.");
     }
+    // Ignore permission errors during connection test
   }
 }
 testConnection();
