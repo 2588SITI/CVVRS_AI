@@ -28,8 +28,10 @@ import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
-import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { handleFirestoreError, OperationType } from "./lib/firestoreUtils";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -182,7 +184,7 @@ export default function App() {
       const data = snapshot.docs.map(doc => doc.data());
       setPastCorrections(data);
     }, (error) => {
-      console.error("Firestore Error: ", error);
+      handleFirestoreError(error, OperationType.LIST, "corrections");
     });
 
     return () => {
@@ -384,7 +386,7 @@ export default function App() {
             timestamp: new Date().toISOString()
           });
         } catch (e) {
-          console.error("Failed to sync with Firebase", e);
+          handleFirestoreError(e, OperationType.CREATE, "corrections");
         }
       }
     } catch (err: any) {
@@ -407,7 +409,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
+    <ErrorBoundary>
+      <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
       {/* Atmospheric Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/10 blur-[160px] rounded-full animate-pulse" />
@@ -810,5 +813,6 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+    </ErrorBoundary>
   );
 }
