@@ -326,6 +326,7 @@ export default function App() {
         ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
         : `${MASTER_PROMPT}${learningContext}`;
 
+      console.log("Fetching API:", "/api/analyze", "Origin:", window.location.origin);
       const response = await fetch("/api/analyze", {
         method: "POST",
         headers: {
@@ -353,11 +354,19 @@ export default function App() {
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
-        console.error("Unexpected response format:", text);
-        throw new Error("Server returned an unexpected response format. Please check the server logs.");
+        console.error("Unexpected response format (not JSON):", text);
+        throw new Error(`Server returned an unexpected response format (${contentType}). Status: ${response.status}`);
       }
 
-      const data = await response.json();
+      let data;
+      const responseClone = response.clone();
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        const text = await responseClone.text();
+        console.error("JSON Parse Error. Body was:", text);
+        throw new Error("Server returned an invalid JSON response. This usually happens when the server crashes or returns an error page.");
+      }
 
       if (!data.text) {
         throw new Error("AI failed to generate a report. Please try again with a different video.");

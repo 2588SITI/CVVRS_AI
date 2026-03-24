@@ -15,7 +15,13 @@ async function startServer() {
   const PORT = 3000;
 
   // Increase payload limit for base64 images
-  app.use(express.json({ limit: '50mb' }));
+  app.use(express.json({ limit: '100mb' }));
+
+  // Request logging
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Content-Length: ${req.headers['content-length']}`);
+    next();
+  });
 
   // API: Health Check
   app.get("/api/health", (req, res) => {
@@ -26,6 +32,7 @@ async function startServer() {
   app.post("/api/analyze", async (req, res) => {
     try {
       const { frames, prompt, userApiKey } = req.body;
+      console.log(`[${new Date().toISOString()}] Analyzing ${frames?.length || 0} frames...`);
       
       // Use provided key or fallback to server-side key
       const adminPassword = process.env.ADMIN_PASSWORD;
@@ -36,6 +43,7 @@ async function startServer() {
       }
 
       if (!apiKey) {
+        console.warn(`[${new Date().toISOString()}] API Key missing in request`);
         return res.status(401).json({ error: "API Key or Admin Password required" });
       }
 
@@ -62,11 +70,18 @@ async function startServer() {
       });
       const responseText = result.text;
 
+      console.log(`[${new Date().toISOString()}] Analysis successful`);
       res.json({ text: responseText });
     } catch (error: any) {
-      console.error("Gemini API Error:", error);
+      console.error(`[${new Date().toISOString()}] Gemini API Error:`, error);
       res.status(500).json({ error: error.message || "Internal Server Error" });
     }
+  });
+
+  // Global Error Handler
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error(`[${new Date().toISOString()}] Global Error Handler:`, err);
+    res.status(500).json({ error: "Something went wrong on the server." });
   });
 
   // Vite middleware for development
