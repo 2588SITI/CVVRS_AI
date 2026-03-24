@@ -447,7 +447,7 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
       {/* Atmospheric Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden no-print">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/10 blur-[160px] rounded-full animate-pulse" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-magenta-600/10 blur-[200px] rounded-full animate-pulse" style={{ animationDelay: '3s' }} />
         <div className="absolute top-[30%] right-[20%] w-[40%] h-[40%] bg-cyan-600/5 blur-[140px] rounded-full" />
@@ -687,7 +687,7 @@ export default function App() {
                             <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Neural Analysis Complete</p>
                           </div>
                         </div>
-                        <div className="flex gap-3 no-print">
+                        <div className="flex gap-3">
                           <button 
                             onClick={handlePrint}
                             className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group"
@@ -698,9 +698,9 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:bg-none print:shadow-none print:p-0">
-                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print-container print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:backdrop-blur-none">
-                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-slate print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
+                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl">
+                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
+                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
                             <Markdown>{report}</Markdown>
                           </div>
                         </div>
