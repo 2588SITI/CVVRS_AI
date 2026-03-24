@@ -26,7 +26,6 @@ import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -39,55 +38,40 @@ function cn(...inputs: ClassValue[]) {
 
 const MASTER_PROMPT = `
 Master Prompt: Indian Railway CVVRS (Crew Video & Voice Recording System) Analysis
+
 Role & Context:
-Act as an expert Video Analyst for Indian Railways, specializing in the monitoring of Locomotive Pilots (LP) and Assistant Locomotive Pilots (ALP) in conventional and three-phase locomotives. Your analysis must strictly adhere to Indian Railway codes, manuals, rule books, and circulars issued by the Railway Board and Western Railways (e.g., G&SR, Accident Manuals).
+Act as an expert Video Analyst for Indian Railways, specializing in the monitoring of Locomotive Pilots (LP) and Assistant Locomotive Pilots (ALP). Your analysis must strictly adhere to Indian Railway codes, manuals, and rule books (G&SR).
 
 Task:
-Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
+Analyze the provided frames from the CVVRS system. Generate a report in the EXACT format below.
 
-A. Activity Analysis - Running Condition
-Detect "Running Condition" by observing relative motion between the locomotive and the surrounding environment/fixtures.
-When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
-1. Signal Calling: Is the crew calling out signal aspects with the proper confirmed hand gesture?
-2. Alertness: Is the crew visibly alert?
-3. Nap/Micro-Sleep: Is the crew taking a nap or showing signs of micro-sleep?
-4. Distraction: Is the crew distracted from looking ahead through the lookout glass? (Neglect distractions lasting < 07 seconds).
-5. Mobile Usage: Is the crew using a mobile phone?
-6. Writing Work: Is the crew performing writing work while the train is in motion?
-7. RS Valve (ALP): Does the ALP place their hand on the RS (Emergency Brake) valve upon approaching a danger signal?
-8. Exchange Signals: Is the crew exchanging "ALL RIGHT" signals with station staff and trains in the opposite direction?
-9. Horn Operation: Is the crew operating the horn lever/switch as per requirement (e.g., Whistle Boards)?
-10. Packing: Is the crew involved in packing their belongings?
-11. Leaving Seat: Is the crew leaving their designated place for other activities?
+Report Structure (MANDATORY):
 
-B. Activity Analysis - Stationary Condition
-Detect "Stationary Condition" by the lack of relative motion between the locomotive and the surrounding environment.
-When the train is stopped, check the following:
-1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
-2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
-3. Reverser Neutral: Is the Loco Pilot keeping the reverser switch in the Neutral position?
-4. Nap/Micro-Sleep: Is the crew taking a nap or showing signs of micro-sleep?
+1. Title: Locomotive Crew Monitoring Analysis Report
 
-C. Report Structure & Formatting
-The final output must be a structured report with the following elements:
-1. Heading: CVVRS Intelligence Analysis Report
-2. Subheadings:
-   - Locomotive ID: [Detected ID]
-   - Date of Recording: [Detected Date]
+2. Header Information:
+   - Locomotive ID: [Detected ID, e.g., WAP7 30757]
+   - Date of Recording: [Detected Date, e.g., 07-09-2025]
    - Observation Period: [Start Time] to [End Time]
-3. Detailed Analysis: Provide a topic-wise detailed analysis of the observations.
-4. Compliance Table: Provide a table in the exact format below:
-   Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description
-   [Time] | [Time] | [Category] | [Compliant/Non-Compliant] | [Details]
 
-D. Disciplinary Summary
-Based on the observations, provide a summary of:
-- Corrective Measures: (e.g., Counseling, Refresher Training).
-- Charge Sheet & Punishment: (e.g., Major/Minor penalty based on the severity of the violation, such as mobile use or sleeping, in accordance with DAR norms).
+3. Detailed Analysis:
+   Provide a numbered list of key observations (e.g., 1. Signal Calling & Alertness, 2. Mobile Usage & Distractions, etc.). For each point, provide a brief paragraph explaining the findings.
+
+4. Compliance Table:
+   Generate a Markdown table with the following EXACT columns:
+   | Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description |
+   | :--- | :--- | :--- | :--- | :--- |
+   | [Time] | [Time] | [Category] | [Compliance/Non-Compliance/Minor Deviation] | [Detailed description of the observation] |
+
+5. Disciplinary Summary:
+   - Corrective Measures: [List specific measures like Counseling, Refresher Training, etc.]
+   - Charge Sheet & Punishment: [Specify if any penalty is recommended based on DAR norms].
 
 Constraints:
-- Prioritize accuracy over speed.
-- Utilize previous user corrections regarding terminology (e.g., use "Driving Desk" instead of "Control Stand").
+- LP and ALP wear SKY BLUE SHIRT and NAVY BLUE TROUSER.
+- Distractions < 7 seconds can be neglected.
+- Use "Driving Desk" instead of "Control Stand".
+- Ensure the table is comprehensive and captures all key moments.
 `;
 
 const NeuralFlow = () => {
@@ -330,21 +314,6 @@ export default function App() {
     setProgress(0);
 
     try {
-      // Check if the entered key is actually the admin password
-      const adminPassword = process.env.ADMIN_PASSWORD;
-      let apiKey = userApiKey;
-
-      if (adminPassword && userApiKey === adminPassword) {
-        apiKey = process.env.GEMINI_API_KEY || "";
-      }
-
-      if (!apiKey) {
-        setShowSettings(true);
-        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password.");
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
       // Extract frames instead of sending the whole video for speed and large file support
       const frames = await extractFrames(file);
       
@@ -357,30 +326,37 @@ export default function App() {
         ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
         : `${MASTER_PROMPT}${learningContext}`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [
-          {
-            parts: [
-              ...frames.map(frame => ({ inlineData: frame })),
-              { text: promptWithFeedback }
-            ]
-          }
-        ]
+      const response = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          frames,
+          prompt: promptWithFeedback,
+          userApiKey: userApiKey,
+        }),
       });
 
-      if (!response.text) {
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to analyze video.");
+      }
+
+      const data = await response.json();
+
+      if (!data.text) {
         throw new Error("AI failed to generate a report. Please try again with a different video.");
       }
 
-      setReport(response.text);
+      setReport(data.text);
       
       // 5. Save this run to Firebase if context was provided (Learning)
       if (feedback.trim() && user) {
         try {
           await addDoc(collection(db, "corrections"), {
             context: feedback,
-            correction: response.text?.substring(0, 1000), // Save summary for learning
+            correction: data.text?.substring(0, 1000), // Save summary for learning
             userEmail: user.email || "anonymous",
             authorUid: user.uid,
             timestamp: new Date().toISOString()
@@ -544,10 +520,16 @@ export default function App() {
                   </div>
 
                     <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
-                        <MessageSquare className="w-3 h-3" />
-                        Neural Context & Corrections
-                      </label>
+                      <div className="flex items-center justify-between ml-1">
+                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 flex items-center gap-2">
+                          <MessageSquare className="w-3 h-3" />
+                          Neural Context & Corrections
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                          <span className="text-[8px] font-black uppercase tracking-widest text-cyan-500/60">Global Learning Active</span>
+                        </div>
+                      </div>
                       <textarea 
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
@@ -593,6 +575,42 @@ export default function App() {
                 <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
               </motion.div>
             )}
+
+            {/* Global Intelligence Feature Explanation */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="p-8 rounded-[2rem] bg-gradient-to-br from-cyan-500/5 to-transparent border border-white/5 relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Database className="w-20 h-20 text-cyan-400" />
+              </div>
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center border border-cyan-500/30">
+                    <Sparkles className="w-5 h-5 text-cyan-400" />
+                  </div>
+                  <h3 className="text-lg font-black tracking-tight italic uppercase">Global Intelligence Network</h3>
+                </div>
+                <p className="text-white/40 text-sm leading-relaxed font-medium">
+                  This AI engine features a <span className="text-cyan-400/80">Centralized Learning Loop</span>. Every piece of feedback you provide—like correcting a "Mobile Phone" detection to a "Walkie-Talkie"—is stored in our <span className="text-white/60">Firebase Data Bank</span>.
+                </p>
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-cyan-500/60 mb-1">Interconnected</p>
+                    <p className="text-[11px] text-white/30 font-bold">All users contribute to a shared neural memory.</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-magenta-500/60 mb-1">Evolutionary</p>
+                    <p className="text-[11px] text-white/30 font-bold">The AI becomes more accurate with every correction.</p>
+                  </div>
+                </div>
+                <p className="text-[10px] text-white/20 italic font-medium pt-2">
+                  "Your corrections today build the safety of tomorrow's journey."
+                </p>
+              </div>
+            </motion.div>
           </div>
 
           {/* Right Column: Results */}
@@ -663,9 +681,9 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl">
-                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
-                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
+                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:bg-white print:p-0 print:shadow-none print:rounded-none">
+                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none">
+                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black print:prose-headings:text-black">
                             <Markdown>{report}</Markdown>
                           </div>
                         </div>
