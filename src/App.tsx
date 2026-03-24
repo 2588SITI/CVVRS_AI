@@ -651,8 +651,14 @@ export default function App() {
                 <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
-                  <div className="pt-2 border-t border-red-500/20 text-[10px] text-red-400/50 font-mono">
-                    DEBUG: Hostname: {window.location.hostname} | <span className="text-yellow-500 font-bold underline">Project ID: gen-lang-client-0338108740</span>
+                  <div className="pt-2 border-t border-red-500/20 text-[10px] text-red-400/50 font-mono flex flex-col gap-1">
+                    <div>DEBUG: Hostname: {window.location.hostname}</div>
+                    <div className="text-yellow-500 font-bold">
+                      ⚠️ MISMATCH DETECTED: Your app is using Project ID: gen-lang-client-0338108740
+                    </div>
+                    <div className="text-red-400 italic">
+                      Please send me your Firebase Config from the Console to fix this!
+                    </div>
                   </div>
                 </div>
               </motion.div>
