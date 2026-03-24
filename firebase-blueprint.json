@@ -1,0 +1,24 @@
+{
+  "entities": {
+    "Correction": {
+      "title": "Correction",
+      "description": "A user-provided correction for AI learning.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique ID of the correction." },
+        "context": { "type": "string", "description": "The scenario or context of the correction." },
+        "correction": { "type": "string", "description": "The corrected text or instruction." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the correction was made." },
+        "userEmail": { "type": "string", "format": "email", "description": "Email of the user who made the correction." },
+        "authorUid": { "type": "string", "description": "Firebase Auth UID of the author." }
+      },
+      "required": ["context", "correction", "timestamp", "authorUid"]
+    }
+  },
+  "firestore": {
+    "corrections": {
+      "schema": "Correction",
+      "description": "Collection of global AI learning corrections."
+    }
+  }
+}

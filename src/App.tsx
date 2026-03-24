@@ -27,6 +27,9 @@ import Markdown from "react-markdown";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
+import { auth, db, signInWithGoogle } from "./firebase";
+import { collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "firebase/firestore";
+import { onAuthStateChanged, User } from "firebase/auth";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -154,15 +157,38 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [userApiKey, setUserApiKey] = useState<string>("");
+  const [pastCorrections, setPastCorrections] = useState<any[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [userApiKey, setUserApiKey] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("CVVRS_USER_API_KEY") || "";
+    }
+    return "";
+  });
   const [showSettings, setShowSettings] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const savedKey = localStorage.getItem("CVVRS_USER_API_KEY");
-    if (savedKey) {
-      setUserApiKey(savedKey);
-    }
+    // Auth Listener
+    const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAuthReady(true);
+    });
+
+    // Fetch global corrections from Firestore on load
+    const q = query(collection(db, "corrections"), orderBy("timestamp", "desc"), limit(50));
+    const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map(doc => doc.data());
+      setPastCorrections(data);
+    }, (error) => {
+      console.error("Firestore Error: ", error);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeFirestore();
+    };
   }, []);
 
   const saveApiKey = (key: string) => {
@@ -302,10 +328,17 @@ export default function App() {
     setProgress(0);
 
     try {
-      const apiKey = userApiKey;
+      // Check if the entered key is actually the admin password
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      let apiKey = userApiKey;
+
+      if (adminPassword && userApiKey === adminPassword) {
+        apiKey = process.env.GEMINI_API_KEY || "";
+      }
+
       if (!apiKey) {
         setShowSettings(true);
-        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. Please enter yours in the settings window that just opened.");
+        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
@@ -313,9 +346,14 @@ export default function App() {
       // Extract frames instead of sending the whole video for speed and large file support
       const frames = await extractFrames(file);
       
+      // 3. Prepare Neural Prompt with Global Learning
+      const learningContext = pastCorrections.length > 0 
+        ? `\nPAST GLOBAL CORRECTIONS (Learn from these mistakes across all users): ${pastCorrections.map(c => `[Context: ${c.context}] -> Correction: ${c.correction}`).join('; ')}`
+        : "";
+
       const promptWithFeedback = feedback 
-        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}`
-        : MASTER_PROMPT;
+        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
+        : `${MASTER_PROMPT}${learningContext}`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -334,6 +372,21 @@ export default function App() {
       }
 
       setReport(response.text);
+      
+      // 5. Save this run to Firebase if context was provided (Learning)
+      if (feedback.trim() && user) {
+        try {
+          await addDoc(collection(db, "corrections"), {
+            context: feedback,
+            correction: response.text?.substring(0, 1000), // Save summary for learning
+            userEmail: user.email || "anonymous",
+            authorUid: user.uid,
+            timestamp: new Date().toISOString()
+          });
+        } catch (e) {
+          console.error("Failed to sync with Firebase", e);
+        }
+      }
     } catch (err: any) {
       console.error("Analysis Error:", err);
       let errorMessage = err.message || "An unexpected error occurred during analysis.";
@@ -378,6 +431,24 @@ export default function App() {
           <div className="hidden md:flex items-center gap-10">
             <a href="#" className="text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all">Neural Engine</a>
             <a href="#" className="text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all">Compliance</a>
+            
+            {user ? (
+              <div className="flex items-center gap-4">
+                <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{user.displayName || 'User'}</span>
+                  <button onClick={() => auth.signOut()} className="text-[8px] font-bold text-cyan-500 uppercase tracking-[0.2em] hover:text-cyan-400">Sign Out</button>
+                </div>
+                <img src={user.photoURL || ''} alt="User" className="w-8 h-8 rounded-full border border-white/10" referrerPolicy="no-referrer" />
+              </div>
+            ) : (
+              <button 
+                onClick={signInWithGoogle}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 border border-white/10 text-white/40 hover:bg-white/10"
+              >
+                Sign In
+              </button>
+            )}
+
             <button 
               onClick={() => setShowSettings(true)}
               className={cn(
@@ -687,27 +758,29 @@ export default function App() {
                 <div className="space-y-6">
                   <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 space-y-3">
                     <p className="text-xs text-cyan-400/80 leading-relaxed font-medium">
-                      Enter your personal Gemini API key to save system quota and ensure high-speed processing. Your key is stored locally in your browser and is never sent to our servers.
+                      Enter your personal Gemini API key or Admin Password. Your configuration is stored locally in your browser.
                     </p>
-                    <a 
-                      href="https://aistudio.google.com/app/apikey" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-[10px] font-black text-cyan-400 uppercase tracking-widest hover:underline"
-                    >
-                      Get Free API Key <ChevronRight className="w-3 h-3" />
-                    </a>
+                    <div className="flex flex-wrap gap-4">
+                      <a 
+                        href="https://aistudio.google.com/app/apikey" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-[10px] font-black text-cyan-400 uppercase tracking-widest hover:underline"
+                      >
+                        Get Free API Key <ChevronRight className="w-3 h-3" />
+                      </a>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
                     <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
-                      Gemini API Key
+                      Gemini API Key / Admin Password
                     </label>
                     <input 
                       type="password"
                       value={userApiKey}
                       onChange={(e) => setUserApiKey(e.target.value)}
-                      placeholder="Paste your API key here..."
+                      placeholder="Enter Key or Admin Password..."
                       className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-cyan-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono"
                     />
                   </div>

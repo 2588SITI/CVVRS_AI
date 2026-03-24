@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: corrections
+// Document ID: auto-generated
+// Fields:
+//   - context: string (required) - The scenario or context of the correction.
+//   - correction: string (required) - The corrected text or instruction.
+//   - timestamp: string (required, ISO 8601) - When the correction was made.
+//   - userEmail: string (optional) - Email of the user who made the correction.
+//   - authorUid: string (required) - Firebase Auth UID of the author.
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "rajeshsinghsiti@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidCorrection(data) {
+      return data.keys().hasAll(['context', 'correction', 'timestamp', 'authorUid']) &&
+             data.context is string && data.context.size() > 0 && data.context.size() < 2000 &&
+             data.correction is string && data.correction.size() > 0 && data.correction.size() < 5000 &&
+             data.timestamp is string &&
+             data.authorUid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /corrections/{correctionId} {
+      // Allow authenticated users to read global corrections for learning
+      allow read: if isAuthenticated();
+      
+      // Allow authenticated users to create corrections
+      allow create: if isAuthenticated() && isValidCorrection(request.resource.data);
+      
+      // Only admins or owners (if we allowed editing) can update/delete
+      allow update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isAdmin();
+    }
+  }
+}
