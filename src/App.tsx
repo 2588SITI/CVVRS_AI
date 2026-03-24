@@ -649,7 +649,12 @@ export default function App() {
                 className="p-6 rounded-[1.5rem] bg-red-500/10 border border-red-500/20 flex gap-4 items-start backdrop-blur-md"
               >
                 <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
-                <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
+                  <div className="pt-2 border-t border-red-500/20 text-[10px] text-red-400/50 font-mono">
+                    DEBUG: Hostname: {window.location.hostname} | Project: gen-lang-client-0338108740
+                  </div>
+                </div>
               </motion.div>
             )}
           </div>
