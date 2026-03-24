@@ -652,7 +652,7 @@ export default function App() {
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
                   <div className="pt-2 border-t border-red-500/20 text-[10px] text-red-400/50 font-mono">
-                    DEBUG: Hostname: {window.location.hostname} | Project: gen-lang-client-0338108740
+                    DEBUG: Hostname: {window.location.hostname} | <span className="text-yellow-500 font-bold underline">Project ID: gen-lang-client-0338108740</span>
                   </div>
                 </div>
               </motion.div>
