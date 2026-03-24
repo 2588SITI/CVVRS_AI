@@ -707,6 +707,61 @@ export default function App() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Past Global Corrections Section */}
+            <div className="mt-12 space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                <History className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-lg font-black tracking-tight italic uppercase">Neural Learning History</h3>
+                <div className="h-px flex-1 bg-white/5 ml-4" />
+              </div>
+
+              {!user ? (
+                <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center">
+                  <p className="text-xs text-white/20 font-black uppercase tracking-widest mb-4">Sign in to view global learning context</p>
+                  <button 
+                    onClick={signInWithGoogle}
+                    className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                  >
+                    Sign In with Google
+                  </button>
+                </div>
+              ) : pastCorrections.length === 0 ? (
+                <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center">
+                  <p className="text-xs text-white/20 font-black uppercase tracking-widest">No global corrections recorded yet</p>
+                  <p className="text-[10px] text-white/10 mt-2 font-medium">AI will learn from your first correction</p>
+                </div>
+              ) : (
+                <div className="grid gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  {pastCorrections.map((item, idx) => (
+                    <motion.div 
+                      key={idx} 
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group"
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                          <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Global Correction #{pastCorrections.length - idx}</span>
+                        </div>
+                        <span className="text-[9px] font-bold text-white/10 uppercase tracking-widest">
+                          {new Date(item.timestamp).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-white/60 font-medium leading-relaxed italic mb-2">
+                        "{item.context}"
+                      </p>
+                      <div className="flex items-center gap-2 text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">
+                        <ChevronRight className="w-3 h-3" />
+                        AI Learned: {item.correction.substring(0, 100)}...
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </main>
