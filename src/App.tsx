@@ -231,7 +231,8 @@ export default function App() {
     "Detecting Crew Activities...",
     "Analyzing Compliance Standards...",
     "Generating CVVRS Intelligence Report...",
-    "Finalizing Disciplinary Summary..."
+    "Finalizing Disciplinary Summary...",
+    "Neural Engine Overloaded - Retrying..."
   ];
 
   useEffect(() => {
@@ -343,7 +344,7 @@ export default function App() {
     });
   };
 
-  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 3) => {
+  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 5) => {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
       try {
@@ -360,10 +361,10 @@ export default function App() {
           errorMessage.toLowerCase().includes("deadline exceeded");
         
         if (isRetryable && i < maxRetries - 1) {
-          const delay = Math.pow(2, i) * 3000 + Math.random() * 1000;
+          const delay = Math.pow(2, i) * 5000 + Math.random() * 2000;
           console.warn(`Neural engine overloaded (503), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
           // Update loading step to show retry status
-          setLoadingStep(loadingSteps.length - 1); // Point to a generic "Finalizing" or similar if needed, or just keep current
+          setLoadingStep(loadingSteps.length - 1); 
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
