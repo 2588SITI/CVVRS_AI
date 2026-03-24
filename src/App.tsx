@@ -162,6 +162,7 @@ export default function App() {
   const [pastCorrections, setPastCorrections] = useState<any[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [firebaseError, setFirebaseError] = useState<string | null>(null);
   const [userApiKey, setUserApiKey] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem("CVVRS_USER_API_KEY") || "";
@@ -191,9 +192,13 @@ export default function App() {
     const q = query(collection(db, "corrections"), orderBy("timestamp", "desc"), limit(50));
     const unsubscribeFirestore = onSnapshot(q, (snapshot) => {
       const data = snapshot.docs.map(doc => doc.data());
+      console.log("Fetched corrections:", data.length);
       setPastCorrections(data);
+      setFirebaseError(null);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, "corrections");
+      console.error("Firestore Error:", error);
+      setFirebaseError("Database connection issue. Please check your permissions or network.");
+      // We don't throw here to prevent crashing the whole app, just show in UI
     });
 
     return () => unsubscribeFirestore();
@@ -382,17 +387,18 @@ export default function App() {
       setReport(response.text);
       
       // 5. Save this run to Firebase if context was provided (Learning)
-      if (feedback.trim() && user) {
+      if (user) {
         try {
           await addDoc(collection(db, "corrections"), {
-            context: feedback,
+            context: feedback.trim() || "Automated Analysis Run",
             correction: response.text?.substring(0, 1000), // Save summary for learning
             userEmail: user.email || "anonymous",
             authorUid: user.uid,
             timestamp: new Date().toISOString()
           });
+          console.log("Data stored in Firebase successfully");
         } catch (e) {
-          handleFirestoreError(e, OperationType.CREATE, "corrections");
+          console.error("Failed to save to Firebase:", e);
         }
       }
     } catch (err: any) {
@@ -709,53 +715,78 @@ export default function App() {
             </AnimatePresence>
 
             {/* Past Global Corrections Section */}
-            <div className="mt-12 space-y-6">
-              <div className="flex items-center gap-3 px-2">
-                <History className="w-5 h-5 text-cyan-400" />
-                <h3 className="text-lg font-black tracking-tight italic uppercase">Neural Learning History</h3>
-                <div className="h-px flex-1 bg-white/5 ml-4" />
+            <div className="mt-12 space-y-6 bg-white/[0.02] p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-md">
+              <div className="flex items-center justify-between px-2">
+                <div className="flex items-center gap-3">
+                  <History className="w-5 h-5 text-cyan-400" />
+                  <h3 className="text-lg font-black tracking-tight italic uppercase">Neural Learning History</h3>
+                </div>
+                {user && (
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[8px] font-black text-green-500 uppercase tracking-widest">Live Sync Active</span>
+                  </div>
+                )}
               </div>
 
-              {!user ? (
-                <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center">
-                  <p className="text-xs text-white/20 font-black uppercase tracking-widest mb-4">Sign in to view global learning context</p>
+              {firebaseError && (
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-3">
+                  <AlertCircle className="w-4 h-4" />
+                  {firebaseError}
+                </div>
+              )}
+
+              {!isAuthReady ? (
+                <div className="h-20 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-white/10 animate-spin" />
+                </div>
+              ) : !user ? (
+                <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center space-y-4">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <ShieldAlert className="w-6 h-6 text-white/20" />
+                  </div>
+                  <p className="text-xs text-white/40 font-black uppercase tracking-widest">Authentication Required</p>
+                  <p className="text-[10px] text-white/20 font-medium max-w-[200px] mx-auto">Sign in to sync your analysis with the global neural network.</p>
                   <button 
                     onClick={signInWithGoogle}
-                    className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                    className="px-8 py-3 rounded-xl bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-cyan-50 hover:text-black transition-all shadow-xl shadow-cyan-600/20"
                   >
                     Sign In with Google
                   </button>
                 </div>
               ) : pastCorrections.length === 0 ? (
                 <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center">
+                  <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Database className="w-6 h-6 text-white/10" />
+                  </div>
                   <p className="text-xs text-white/20 font-black uppercase tracking-widest">No global corrections recorded yet</p>
                   <p className="text-[10px] text-white/10 mt-2 font-medium">AI will learn from your first correction</p>
                 </div>
               ) : (
-                <div className="grid gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
                   {pastCorrections.map((item, idx) => (
                     <motion.div 
                       key={idx} 
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="p-6 rounded-[1.5rem] bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group"
+                      className="p-6 rounded-[1.5rem] bg-white/[0.03] border border-white/5 hover:border-cyan-500/30 hover:bg-white/[0.05] transition-all group relative overflow-hidden"
                     >
+                      <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/20 group-hover:bg-cyan-500 transition-colors" />
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
-                          <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Global Correction #{pastCorrections.length - idx}</span>
+                          <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Global Node #{pastCorrections.length - idx}</span>
                         </div>
-                        <span className="text-[9px] font-bold text-white/10 uppercase tracking-widest">
-                          {new Date(item.timestamp).toLocaleDateString()}
+                        <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
+                          {new Date(item.timestamp).toLocaleDateString()} • {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="text-xs text-white/60 font-medium leading-relaxed italic mb-2">
+                      <p className="text-xs text-white/80 font-medium leading-relaxed italic mb-3">
                         "{item.context}"
                       </p>
-                      <div className="flex items-center gap-2 text-[10px] font-black text-cyan-500/60 uppercase tracking-widest">
-                        <ChevronRight className="w-3 h-3" />
-                        AI Learned: {item.correction.substring(0, 100)}...
+                      <div className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest bg-white/5 p-3 rounded-lg border border-white/5">
+                        <ChevronRight className="w-3 h-3 text-cyan-400" />
+                        <span className="truncate">AI Learned: {item.correction.substring(0, 80)}...</span>
                       </div>
                     </motion.div>
                   ))}
