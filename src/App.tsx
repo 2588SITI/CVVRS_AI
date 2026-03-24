@@ -328,6 +328,36 @@ export default function App() {
     });
   };
 
+  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 3) => {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const response = await ai.models.generateContent(params);
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        const errorMessage = err.message || "";
+        const isRetryable = 
+          errorMessage.includes("503") || 
+          errorMessage.toLowerCase().includes("overloaded") || 
+          errorMessage.toLowerCase().includes("high demand") ||
+          errorMessage.toLowerCase().includes("unavailable") ||
+          errorMessage.toLowerCase().includes("deadline exceeded");
+        
+        if (isRetryable && i < maxRetries - 1) {
+          const delay = Math.pow(2, i) * 3000 + Math.random() * 1000;
+          console.warn(`Neural engine overloaded (503), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
+          // Update loading step to show retry status
+          setLoadingStep(loadingSteps.length - 1); // Point to a generic "Finalizing" or similar if needed, or just keep current
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastError;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
@@ -368,7 +398,7 @@ export default function App() {
         ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
         : `${MASTER_PROMPT}${learningContext}`;
 
-      const response = await ai.models.generateContent({
+      const response = await generateContentWithRetry(ai, {
         model: "gemini-3-flash-preview",
         contents: [
           {
@@ -407,6 +437,8 @@ export default function App() {
       
       if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota") || errorMessage.toLowerCase().includes("rate limit")) {
         errorMessage = "AI Quota Exceeded: The system is currently handling too many requests. Please wait about 30-60 seconds and try again. Switching to a faster engine for your next attempt.";
+      } else if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("high demand") || errorMessage.toLowerCase().includes("unavailable")) {
+        errorMessage = "Neural Engine Overloaded: Google's AI models are currently experiencing extremely high demand globally. We attempted several retries, but the service is still unavailable. Please wait a minute and try again.";
       }
       
       setError(errorMessage);
