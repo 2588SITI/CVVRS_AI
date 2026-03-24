@@ -201,7 +201,8 @@ export default function App() {
 
   const loadingSteps = [
     "Initializing Neural Engine...",
-    "Extracting High-Resolution Frames...",
+    "Uploading High-Resolution Video (File API)...",
+    "Processing Video on Google AI Servers...",
     "Detecting Crew Activities...",
     "Analyzing Compliance Standards...",
     "Generating CVVRS Intelligence Report...",
@@ -222,10 +223,16 @@ export default function App() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
       setError(null);
       setReport(null);
       setProgress(0);
+
+      // Warning for very large files
+      if (selectedFile.size > 100 * 1024 * 1024) {
+        setError(`Note: This is a large file (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB). We will use the Gemini File API for deep analysis, which handles videos up to 1 hour and 2GB.`);
+      }
     }
   };
 
@@ -345,24 +352,52 @@ export default function App() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // Extract frames instead of sending the whole video for speed and large file support
-      const frames = await extractFrames(file);
+      // 1. Upload to File API for large video support
+      setLoadingStep(1); // Uploading...
+      setProgress(10);
       
+      const uploadResult = await ai.files.upload({
+        file: file,
+        config: {
+          displayName: file.name,
+          mimeType: file.type,
+        },
+      });
+
+      // 2. Poll for processing status
+      setLoadingStep(2); // Processing...
+      let uploadedFile = await ai.files.get({ name: uploadResult.name });
+      
+      let attempts = 0;
+      while (uploadedFile.state === 'PROCESSING' && attempts < 120) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        uploadedFile = await ai.files.get({ name: uploadResult.name });
+        attempts++;
+        setProgress(Math.min(90, 20 + attempts)); // Slow progress during processing
+      }
+
+      if (uploadedFile.state === 'FAILED') {
+        throw new Error("Video processing failed on Google servers. Please ensure the video is a standard format (MP4/H.264).");
+      }
+
+      setLoadingStep(3); // Analyzing...
+      setProgress(95);
+
       // 3. Prepare Neural Prompt with Global Learning
       const learningContext = pastCorrections.length > 0 
         ? `\nPAST GLOBAL CORRECTIONS (Learn from these mistakes across all users): ${pastCorrections.map(c => `[Context: ${c.context}] -> Correction: ${c.correction}`).join('; ')}`
         : "";
 
       const promptWithFeedback = feedback 
-        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
-        : `${MASTER_PROMPT}${learningContext}`;
+        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}\n\nIMPORTANT: Please provide a concise but comprehensive report. If the video is long, summarize the key events and deviations clearly.`
+        : `${MASTER_PROMPT}${learningContext}\n\nIMPORTANT: Please provide a concise but comprehensive report. If the video is long, summarize the key events and deviations clearly.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
           {
             parts: [
-              ...frames.map(frame => ({ inlineData: frame })),
+              { fileData: { fileUri: uploadedFile.uri, mimeType: uploadedFile.mimeType } },
               { text: promptWithFeedback }
             ]
           }
@@ -412,7 +447,7 @@ export default function App() {
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
       {/* Atmospheric Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden no-print">
         <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/10 blur-[160px] rounded-full animate-pulse" />
         <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-magenta-600/10 blur-[200px] rounded-full animate-pulse" style={{ animationDelay: '3s' }} />
         <div className="absolute top-[30%] right-[20%] w-[40%] h-[40%] bg-cyan-600/5 blur-[140px] rounded-full" />
@@ -652,7 +687,7 @@ export default function App() {
                             <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Neural Analysis Complete</p>
                           </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 no-print">
                           <button 
                             onClick={handlePrint}
                             className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group"
@@ -663,9 +698,9 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl">
-                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
-                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
+                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:bg-none print:shadow-none print:p-0">
+                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print-container print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:backdrop-blur-none">
+                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-slate print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
                             <Markdown>{report}</Markdown>
                           </div>
                         </div>
