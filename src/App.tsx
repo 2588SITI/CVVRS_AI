@@ -26,6 +26,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
@@ -329,6 +330,21 @@ export default function App() {
     setProgress(0);
 
     try {
+      // Check if the entered key is actually the admin password
+      const adminPassword = process.env.ADMIN_PASSWORD;
+      let apiKey = userApiKey;
+
+      if (adminPassword && userApiKey === adminPassword) {
+        apiKey = process.env.GEMINI_API_KEY || "";
+      }
+
+      if (!apiKey) {
+        setShowSettings(true);
+        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
+      
       // Extract frames instead of sending the whole video for speed and large file support
       const frames = await extractFrames(file);
       
@@ -341,37 +357,30 @@ export default function App() {
         ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
         : `${MASTER_PROMPT}${learningContext}`;
 
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          frames,
-          prompt: promptWithFeedback,
-          userApiKey: userApiKey,
-        }),
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [
+          {
+            parts: [
+              ...frames.map(frame => ({ inlineData: frame })),
+              { text: promptWithFeedback }
+            ]
+          }
+        ]
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to analyze video.");
-      }
-
-      const data = await response.json();
-
-      if (!data.text) {
+      if (!response.text) {
         throw new Error("AI failed to generate a report. Please try again with a different video.");
       }
 
-      setReport(data.text);
+      setReport(response.text);
       
       // 5. Save this run to Firebase if context was provided (Learning)
       if (feedback.trim() && user) {
         try {
           await addDoc(collection(db, "corrections"), {
             context: feedback,
-            correction: data.text?.substring(0, 1000), // Save summary for learning
+            correction: response.text?.substring(0, 1000), // Save summary for learning
             userEmail: user.email || "anonymous",
             authorUid: user.uid,
             timestamp: new Date().toISOString()
@@ -535,16 +544,10 @@ export default function App() {
                   </div>
 
                     <div className="space-y-3">
-                      <div className="flex items-center justify-between ml-1">
-                        <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 flex items-center gap-2">
-                          <MessageSquare className="w-3 h-3" />
-                          Neural Context & Corrections
-                        </label>
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
-                          <span className="text-[8px] font-black uppercase tracking-widest text-cyan-500/60">Global Learning Active</span>
-                        </div>
-                      </div>
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
+                        <MessageSquare className="w-3 h-3" />
+                        Neural Context & Corrections
+                      </label>
                       <textarea 
                         value={feedback}
                         onChange={(e) => setFeedback(e.target.value)}
@@ -590,42 +593,6 @@ export default function App() {
                 <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
               </motion.div>
             )}
-
-            {/* Global Intelligence Feature Explanation */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="p-8 rounded-[2rem] bg-gradient-to-br from-cyan-500/5 to-transparent border border-white/5 relative overflow-hidden group"
-            >
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Database className="w-20 h-20 text-cyan-400" />
-              </div>
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center border border-cyan-500/30">
-                    <Sparkles className="w-5 h-5 text-cyan-400" />
-                  </div>
-                  <h3 className="text-lg font-black tracking-tight italic uppercase">Global Intelligence Network</h3>
-                </div>
-                <p className="text-white/40 text-sm leading-relaxed font-medium">
-                  This AI engine features a <span className="text-cyan-400/80">Centralized Learning Loop</span>. Every piece of feedback you provide—like correcting a "Mobile Phone" detection to a "Walkie-Talkie"—is stored in our <span className="text-white/60">Firebase Data Bank</span>.
-                </p>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-cyan-500/60 mb-1">Interconnected</p>
-                    <p className="text-[11px] text-white/30 font-bold">All users contribute to a shared neural memory.</p>
-                  </div>
-                  <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/5">
-                    <p className="text-[9px] font-black uppercase tracking-widest text-magenta-500/60 mb-1">Evolutionary</p>
-                    <p className="text-[11px] text-white/30 font-bold">The AI becomes more accurate with every correction.</p>
-                  </div>
-                </div>
-                <p className="text-[10px] text-white/20 italic font-medium pt-2">
-                  "Your corrections today build the safety of tomorrow's journey."
-                </p>
-              </div>
-            </motion.div>
           </div>
 
           {/* Right Column: Results */}
