@@ -204,6 +204,21 @@ export default function App() {
     return () => unsubscribeFirestore();
   }, [user]);
 
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err: any) {
+      console.error("Sign-In Error:", err);
+      if (err.code === 'auth/unauthorized-domain') {
+        setError("Sign-In Failed: This domain is not authorized in the Firebase Console. Please add your App URL to the 'Authorized Domains' list in Firebase Authentication settings.");
+      } else if (err.code === 'auth/popup-blocked') {
+        setError("Sign-In Failed: The login popup was blocked by your browser. Please allow popups for this site.");
+      } else {
+        setError(`Sign-In Failed: ${err.message}`);
+      }
+    }
+  };
+
   const saveApiKey = (key: string) => {
     setUserApiKey(key);
     localStorage.setItem("CVVRS_USER_API_KEY", key);
@@ -489,7 +504,7 @@ export default function App() {
               </div>
             ) : (
               <button 
-                onClick={signInWithGoogle}
+                onClick={handleSignIn}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 border border-white/10 text-white/40 hover:bg-white/10"
               >
                 Sign In
@@ -780,7 +795,7 @@ export default function App() {
                   <p className="text-xs text-white/40 font-black uppercase tracking-widest">Authentication Required</p>
                   <p className="text-[10px] text-white/20 font-medium max-w-[200px] mx-auto">Sign in to sync your analysis with the global neural network.</p>
                   <button 
-                    onClick={signInWithGoogle}
+                    onClick={handleSignIn}
                     className="px-8 py-3 rounded-xl bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-cyan-50 hover:text-black transition-all shadow-xl shadow-cyan-600/20"
                   >
                     Sign In with Google
