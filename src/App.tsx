@@ -470,42 +470,75 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
-      {/* Atmospheric Background */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-cyan-600/10 blur-[160px] rounded-full animate-pulse" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[70%] h-[70%] bg-magenta-600/10 blur-[200px] rounded-full animate-pulse" style={{ animationDelay: '3s' }} />
-        <div className="absolute top-[30%] right-[20%] w-[40%] h-[40%] bg-cyan-600/5 blur-[140px] rounded-full" />
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1932&auto=format&fit=crop')] bg-cover bg-center opacity-[0.05] mix-blend-overlay" />
+      <div className="ai-aura-bg" />
+      <div className="fixed inset-0 digital-grid pointer-events-none" />
+      
+      {/* Floating Particles */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            initial={{ 
+              x: Math.random() * window.innerWidth, 
+              y: Math.random() * window.innerHeight,
+              opacity: Math.random() * 0.5
+            }}
+            animate={{ 
+              x: Math.random() * window.innerWidth, 
+              y: Math.random() * window.innerHeight,
+              opacity: [0.2, 0.5, 0.2]
+            }}
+            transition={{ 
+              duration: 10 + Math.random() * 20, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
+            className="absolute w-1 h-1 bg-brand-cyan rounded-full blur-[1px]"
+          />
+        ))}
       </div>
+      
+      {/* Decorative Background Blobs */}
+      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-brand-blue/20 blur-[150px] rounded-full animate-pulse-slow pointer-events-none" />
+      <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-brand-magenta/15 blur-[150px] rounded-full animate-pulse-slow pointer-events-none" style={{ animationDelay: '2s' }} />
+      <div className="fixed top-[20%] right-[10%] w-[30%] h-[30%] bg-brand-cyan/10 blur-[120px] rounded-full animate-float pointer-events-none" />
 
       {/* Navigation */}
-      <nav className="relative z-10 border-b border-white/5 backdrop-blur-2xl bg-black/40 sticky top-0">
+      <nav className="sticky top-0 z-50 glass-card border-x-0 border-t-0">
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-cyan-700 rounded-2xl flex items-center justify-center shadow-2xl shadow-cyan-600/30 group cursor-pointer">
-              <ShieldAlert className="w-7 h-7 text-white group-hover:scale-110 transition-transform" />
+          <div className="flex items-center gap-4 group cursor-pointer">
+            <div className="relative">
+              <div className="absolute inset-0 bg-brand-cyan/20 blur-lg rounded-full group-hover:bg-brand-cyan/40 transition-all" />
+              <div className="relative w-12 h-12 bg-black rounded-xl border border-brand-cyan/30 flex items-center justify-center overflow-hidden">
+                <Cpu className="w-7 h-7 text-brand-cyan animate-float" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-brand-cyan/10 to-transparent" />
+              </div>
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tighter uppercase italic">CVVRS <span className="text-cyan-400">AI</span></h1>
-              <p className="text-[9px] uppercase tracking-[0.3em] text-white/30 font-bold">Crew Intelligence System</p>
+              <h1 className="text-2xl font-black tracking-tighter italic glow-text">CVVRS <span className="text-brand-cyan">AI</span></h1>
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">Neural Analysis Engine</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-10">
-            <a href="#" className="text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all">Neural Engine</a>
-            <a href="#" className="text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-all">Compliance</a>
+          <div className="hidden md:flex items-center gap-8">
+            <div className="flex items-center gap-6 pr-8 border-r border-white/10">
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-brand-cyan transition-all glow-text">Neural Engine</a>
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-brand-cyan transition-all">Compliance</a>
+            </div>
             
             {user ? (
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 pl-2">
                 <div className="flex flex-col items-end">
                   <span className="text-[10px] font-black text-white/60 uppercase tracking-widest">{user.displayName || 'User'}</span>
-                  <button onClick={() => auth.signOut()} className="text-[8px] font-bold text-cyan-500 uppercase tracking-[0.2em] hover:text-cyan-400">Sign Out</button>
+                  <button onClick={() => auth.signOut()} className="text-[8px] font-bold text-brand-cyan uppercase tracking-[0.2em] hover:text-brand-cyan/80 transition-colors">Sign Out</button>
                 </div>
-                <img src={user.photoURL || ''} alt="User" className="w-8 h-8 rounded-full border border-white/10" referrerPolicy="no-referrer" />
+                <div className="relative p-0.5 rounded-full bg-gradient-to-tr from-brand-cyan to-brand-magenta">
+                  <img src={user.photoURL || ''} alt="User" className="w-8 h-8 rounded-full bg-black" referrerPolicy="no-referrer" />
+                </div>
               </div>
             ) : (
               <button 
                 onClick={handleSignIn}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 border border-white/10 text-white/40 hover:bg-white/10"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 border border-white/10 text-white/40 hover:bg-brand-cyan hover:text-black hover:border-brand-cyan"
               >
                 Sign In
               </button>
@@ -515,7 +548,7 @@ export default function App() {
               onClick={() => setShowSettings(true)}
               className={cn(
                 "flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all backdrop-blur-md border",
-                userApiKey ? "bg-cyan-500/10 border-cyan-500/30 text-cyan-400" : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
+                userApiKey ? "bg-brand-cyan/10 border-brand-cyan/30 text-brand-cyan shadow-[0_0_15px_rgba(0,242,255,0.1)]" : "bg-white/5 border-white/10 text-white/40 hover:bg-white/10"
               )}
             >
               <Settings className="w-3.5 h-3.5" />
@@ -525,8 +558,8 @@ export default function App() {
         </div>
       </nav>
 
-      <main className="relative z-10 max-w-7xl mx-auto px-6 py-16">
-        <div className="grid lg:grid-cols-12 gap-16">
+      <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
+        <div className="grid lg:grid-cols-12 gap-12">
           {/* Left Column: Controls */}
           <div className="lg:col-span-5 space-y-10">
             <motion.div 
@@ -534,15 +567,15 @@ export default function App() {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-6"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-black uppercase tracking-[0.2em]">
-                <Sparkles className="w-3.5 h-3.5" />
-                Artificial Intelligence
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-cyan/10 border border-brand-cyan/20 text-brand-cyan text-[10px] font-black uppercase tracking-[0.2em] glow-text">
+                <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                Artificial Intelligence Active
               </div>
-              <h2 className="text-6xl font-black leading-[0.95] tracking-tighter italic">
-                CVVRS <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-600">Analysis</span> by AI.
+              <h2 className="text-6xl font-black leading-[0.95] tracking-tighter italic uppercase glow-text">
+                Neural <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-magenta">Vision</span> System.
               </h2>
-              <p className="text-white/40 text-lg leading-relaxed font-medium">
-                High-speed neural vision for large-scale locomotive crew monitoring. Optimized for CVVRS data processing.
+              <p className="text-white/40 text-lg leading-relaxed font-medium max-w-md">
+                High-speed parallel processing for large-scale locomotive crew monitoring and compliance.
               </p>
             </motion.div>
 
@@ -550,96 +583,99 @@ export default function App() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="p-1 rounded-[2.5rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl"
+              className="glass-card p-8 rounded-[2.5rem] relative overflow-hidden group ai-shimmer neon-glow-cyan"
             >
-              <div className="p-10 rounded-[2.4rem] bg-black/60 backdrop-blur-[60px] border border-white/5 space-y-8">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
-                      <Database className="w-3 h-3" />
-                      Data Source
-                    </label>
-                    <div 
-                      onClick={() => fileInputRef.current?.click()}
-                      className={cn(
-                        "group relative cursor-pointer overflow-hidden rounded-[2rem] border-2 border-dashed transition-all duration-500",
-                        file ? "border-cyan-500/40 bg-cyan-500/5 shadow-[inset_0_0_40px_rgba(0,242,255,0.05)]" : "border-white/5 hover:border-white/20 hover:bg-white/[0.02]"
-                      )}
-                    >
-                      <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept="video/*"
-                        className="hidden"
-                      />
-                      <div className="p-12 flex flex-col items-center text-center gap-5">
-                        {file ? (
-                          <>
-                            <div className="w-20 h-20 bg-cyan-500/20 rounded-3xl flex items-center justify-center shadow-2xl shadow-cyan-500/20">
-                              <CheckCircle2 className="w-10 h-10 text-cyan-400" />
-                            </div>
-                            <div>
-                              <p className="font-black text-white text-lg tracking-tight">{file.name}</p>
-                              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">
-                                {(file.size / (1024 * 1024)).toFixed(2)} MB • Large File Support Active
-                              </p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
-                              <Video className="w-10 h-10 text-white/20 group-hover:text-white/40 transition-colors" />
-                            </div>
-                            <div>
-                              <p className="font-black text-white/80 text-lg tracking-tight">Load CVVRS Footage</p>
-                              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Optimized for large video files</p>
-                              <p className="text-[9px] text-cyan-500/60 font-black uppercase tracking-widest mt-3">Use standard MP4 (H.264) for best results</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-brand-cyan/10 blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-brand-cyan/20 transition-all" />
+              
+              <form onSubmit={handleSubmit} className="space-y-8 relative">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-brand-cyan mb-1">
+                    <div className="w-1 h-1 rounded-full bg-brand-cyan animate-ping" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest">System Ready</span>
                   </div>
+                  <h2 className="text-3xl font-black tracking-tight italic uppercase leading-none">Initialize <br />Analysis</h2>
+                  <p className="text-sm text-white/40 font-medium">Upload neural data for deep processing</p>
+                </div>
 
-                    <div className="space-y-3">
-                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
-                        <MessageSquare className="w-3 h-3" />
-                        Neural Context & Corrections
-                      </label>
-                      <textarea 
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                        placeholder="If the previous result was wrong, provide corrections here (e.g., 'The LP was alert, not sleeping') or specify unique conditions..."
-                        className="w-full h-28 px-6 py-5 rounded-[1.5rem] bg-white/[0.03] border border-white/5 focus:border-cyan-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm placeholder:text-white/10 resize-none font-medium"
-                      />
-                    </div>
-  
-                    <button
-                      type="submit"
-                      disabled={loading || !file}
-                      className={cn(
-                        "w-full py-6 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 group overflow-hidden relative",
-                        loading 
-                          ? "bg-white/5 text-white/20 cursor-not-allowed" 
-                          : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-2xl shadow-cyan-600/30 active:scale-[0.98]"
-                      )}
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                      {loading ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Analyzing {progress}%
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-5 h-5 fill-current" />
-                          Initiate Fast Analysis
-                        </>
-                      )}
-                    </button>
-                </form>
-              </div>
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    "group relative cursor-pointer overflow-hidden rounded-[2rem] border-2 border-dashed transition-all duration-500",
+                    file ? "border-brand-cyan/40 bg-brand-cyan/10 shadow-[0_0_30px_rgba(0,242,255,0.1)]" : "border-white/5 hover:border-brand-cyan/30 hover:bg-white/[0.04]"
+                  )}
+                >
+                  <input 
+                    type="file" 
+                    ref={fileInputRef}
+                    onChange={handleFileChange}
+                    accept="video/*"
+                    className="hidden"
+                  />
+                  <div className="p-12 flex flex-col items-center text-center gap-5">
+                    {file ? (
+                      <>
+                        <div className="w-20 h-20 bg-brand-cyan/20 rounded-3xl flex items-center justify-center shadow-[0_0_40px_rgba(0,242,255,0.3)] border border-brand-cyan/30">
+                          <CheckCircle2 className="w-10 h-10 text-brand-cyan" />
+                        </div>
+                        <div>
+                          <p className="font-black text-white text-lg tracking-tight glow-text">{file.name}</p>
+                          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">
+                            {(file.size / (1024 * 1024)).toFixed(2)} MB • Neural Link Established
+                          </p>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-cyan/10 transition-all duration-500 border border-white/5 group-hover:border-brand-cyan/30">
+                          <Video className="w-10 h-10 text-white/20 group-hover:text-brand-cyan transition-colors" />
+                        </div>
+                        <div>
+                          <p className="font-black text-white/80 text-lg tracking-tight group-hover:text-white transition-colors">Load CVVRS Footage</p>
+                          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Optimized for large video files</p>
+                          <p className="text-[9px] text-brand-cyan/60 font-black uppercase tracking-widest mt-3">Use standard MP4 (H.264) for best results</p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
+                    <MessageSquare className="w-3 h-3 text-brand-cyan" />
+                    Neural Context & Corrections
+                  </label>
+                  <textarea 
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="If the previous result was wrong, provide corrections here..."
+                    className="w-full h-28 px-6 py-5 rounded-[1.5rem] bg-white/[0.02] border border-white/5 focus:border-brand-cyan/40 focus:bg-white/[0.04] focus:ring-0 transition-all text-sm placeholder:text-white/10 resize-none font-medium"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || !file}
+                  className={cn(
+                    "w-full py-6 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 group overflow-hidden relative",
+                    loading 
+                      ? "bg-white/5 text-white/20 cursor-not-allowed" 
+                      : "bg-brand-cyan hover:bg-brand-cyan/90 text-black shadow-[0_0_30px_rgba(0,242,255,0.2)] active:scale-[0.98]"
+                  )}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Analyzing {progress}%
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 fill-current" />
+                      Initiate Neural Scan
+                    </>
+                  )}
+                </button>
+              </form>
             </motion.div>
 
             {error && (
@@ -649,18 +685,7 @@ export default function App() {
                 className="p-6 rounded-[1.5rem] bg-red-500/10 border border-red-500/20 flex gap-4 items-start backdrop-blur-md"
               >
                 <AlertCircle className="w-6 h-6 text-red-500 shrink-0 mt-0.5" />
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
-                  <div className="pt-2 border-t border-red-500/20 text-[10px] text-red-400/50 font-mono flex flex-col gap-1">
-                    <div>DEBUG: Hostname: {window.location.hostname}</div>
-                    <div className="text-yellow-500 font-bold">
-                      ⚠️ MISMATCH DETECTED: Your app is using Project ID: gen-lang-client-0338108740
-                    </div>
-                    <div className="text-red-400 italic">
-                      Please send me your Firebase Config from the Console to fix this!
-                    </div>
-                  </div>
-                </div>
+                <p className="text-sm text-red-200/70 leading-relaxed font-medium">{error}</p>
               </motion.div>
             )}
           </div>
@@ -714,27 +739,27 @@ export default function App() {
                 >
                       <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-cyan-500/10 rounded-[1.2rem] flex items-center justify-center border border-cyan-500/20">
-                            <FileText className="w-6 h-6 text-cyan-400" />
+                          <div className="w-12 h-12 bg-brand-cyan/10 rounded-[1.2rem] flex items-center justify-center border border-brand-cyan/20">
+                            <FileText className="w-6 h-6 text-brand-cyan" />
                           </div>
                           <div>
-                            <h3 className="font-black text-xl tracking-tight italic">Intelligence Report</h3>
+                            <h3 className="font-black text-xl tracking-tight italic glow-text uppercase">Intelligence Report</h3>
                             <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Neural Analysis Complete</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
                           <button 
                             onClick={handlePrint}
-                            className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group"
+                            className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group glow-border"
                           >
-                            <Printer className="w-4 h-4 text-cyan-400 group-hover:scale-110 transition-transform" />
+                            <Printer className="w-4 h-4 text-brand-cyan group-hover:scale-110 transition-transform" />
                             Export PDF
                           </button>
                         </div>
                       </div>
 
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl">
-                        <div className="p-12 rounded-[2.9rem] bg-black/60 backdrop-blur-[60px] border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
+                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
                             <Markdown>{report}</Markdown>
                           </div>
@@ -742,45 +767,50 @@ export default function App() {
                       </div>
                 </motion.div>
               ) : (
-                <motion.div 
-                  key="empty"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="h-full min-h-[650px] flex flex-col items-center justify-center text-center p-16 rounded-[3rem] border-2 border-dashed border-white/5 bg-white/[0.01] backdrop-blur-sm"
-                >
-                  <div className="w-24 h-24 bg-white/[0.02] rounded-[2rem] flex items-center justify-center mb-8 border border-white/5">
-                    <Eye className="w-12 h-12 text-white/10" />
-                  </div>
-                  <h3 className="text-2xl font-black text-white/40 italic tracking-tight">Neural Standby</h3>
-                  <p className="text-white/20 text-sm max-w-xs mt-3 font-medium">
-                    Load CVVRS footage to begin high-speed automated intelligence analysis.
-                  </p>
-                  
-                  <div className="mt-16 grid grid-cols-2 gap-6 w-full max-w-md">
-                    <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 text-left group hover:bg-white/[0.04] transition-all">
-                      <Activity className="w-6 h-6 text-cyan-400/40 mb-4 group-hover:scale-110 transition-transform" />
-                      <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-black">Fast Engine</p>
-                      <p className="text-xs text-white/40 mt-2 font-medium leading-relaxed">Multi-frame parallel processing logic</p>
+                  <motion.div 
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="h-full min-h-[650px] flex flex-col items-center justify-center text-center p-16 rounded-[3rem] border-2 border-dashed border-white/5 glass-card"
+                  >
+                    <div className="w-24 h-24 bg-white/[0.02] rounded-[2rem] flex items-center justify-center mb-8 border border-white/5 relative group">
+                      <div className="absolute inset-0 bg-brand-cyan/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Eye className="w-12 h-12 text-white/10 group-hover:text-brand-cyan transition-colors" />
                     </div>
-                    <div className="p-6 rounded-[2rem] bg-white/[0.02] border border-white/5 text-left group hover:bg-white/[0.04] transition-all">
-                      <ShieldAlert className="w-6 h-6 text-magenta-500/40 mb-4 group-hover:scale-110 transition-transform" />
-                      <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-black">Compliance</p>
-                      <p className="text-xs text-white/40 mt-2 font-medium leading-relaxed">Strict Indian Railway rulebook adherence</p>
+                    <h3 className="text-2xl font-black text-white/40 italic tracking-tight uppercase glow-text">Neural Standby</h3>
+                    <p className="text-white/20 text-sm max-w-xs mt-3 font-medium">
+                      Load CVVRS footage to begin high-speed automated intelligence analysis.
+                    </p>
+                    
+                    <div className="mt-16 grid grid-cols-2 gap-6 w-full max-w-md">
+                      <div className="p-6 rounded-[2rem] glass-card border border-white/5 text-left group hover:bg-white/[0.04] transition-all glow-border">
+                        <Activity className="w-6 h-6 text-brand-cyan/40 mb-4 group-hover:scale-110 transition-transform" />
+                        <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-black">Fast Engine</p>
+                        <p className="text-xs text-white/40 mt-2 font-medium leading-relaxed">Multi-frame parallel processing logic</p>
+                      </div>
+                      <div className="p-6 rounded-[2rem] glass-card border border-white/5 text-left group hover:bg-white/[0.04] transition-all glow-border">
+                        <ShieldAlert className="w-6 h-6 text-brand-magenta/40 mb-4 group-hover:scale-110 transition-transform" />
+                        <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-black">Compliance</p>
+                        <p className="text-xs text-white/40 mt-2 font-medium leading-relaxed">Strict Indian Railway rulebook adherence</p>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
               )}
             </AnimatePresence>
 
             {/* Past Global Corrections Section */}
-            <div className="mt-12 space-y-6 bg-white/[0.02] p-8 rounded-[2.5rem] border border-white/5 backdrop-blur-md">
-              <div className="flex items-center justify-between px-2">
+            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta">
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-magenta/10 blur-3xl rounded-full -ml-24 -mb-24" />
+              
+              <div className="flex items-center justify-between px-2 relative">
                 <div className="flex items-center gap-3">
-                  <History className="w-5 h-5 text-cyan-400" />
-                  <h3 className="text-lg font-black tracking-tight italic uppercase">Neural Learning History</h3>
+                  <div className="p-2 bg-brand-cyan/10 rounded-lg border border-brand-cyan/20">
+                    <History className="w-5 h-5 text-brand-cyan" />
+                  </div>
+                  <h3 className="text-lg font-black tracking-tight italic uppercase glow-text">Neural Learning History</h3>
                 </div>
                 {user && (
-                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/10 border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.1)]">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-[8px] font-black text-green-500 uppercase tracking-widest">Live Sync Active</span>
                   </div>
@@ -828,12 +858,12 @@ export default function App() {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="p-6 rounded-[1.5rem] bg-white/[0.03] border border-white/5 hover:border-cyan-500/30 hover:bg-white/[0.05] transition-all group relative overflow-hidden"
+                      className="p-6 rounded-[1.5rem] glass-card border border-white/5 hover:border-brand-cyan/30 hover:bg-white/[0.05] transition-all group relative overflow-hidden glow-border"
                     >
-                      <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/20 group-hover:bg-cyan-500 transition-colors" />
+                      <div className="absolute top-0 left-0 w-1 h-full bg-brand-cyan/20 group-hover:bg-brand-cyan transition-colors" />
                       <div className="flex justify-between items-start mb-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-cyan-500 uppercase tracking-widest">Global Node #{pastCorrections.length - idx}</span>
+                          <span className="text-[10px] font-black text-brand-cyan uppercase tracking-widest glow-text">Global Node #{pastCorrections.length - idx}</span>
                         </div>
                         <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
                           {new Date(item.timestamp).toLocaleDateString()} • {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -843,7 +873,7 @@ export default function App() {
                         "{item.context}"
                       </p>
                       <div className="flex items-center gap-2 text-[10px] font-black text-white/40 uppercase tracking-widest bg-white/5 p-3 rounded-lg border border-white/5">
-                        <ChevronRight className="w-3 h-3 text-cyan-400" />
+                        <ChevronRight className="w-3 h-3 text-brand-cyan" />
                         <span className="truncate">AI Learned: {item.correction.substring(0, 80)}...</span>
                       </div>
                     </motion.div>
