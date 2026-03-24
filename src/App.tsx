@@ -339,8 +339,22 @@ export default function App() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to analyze video.");
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to analyze video.");
+        } else {
+          const errorText = await response.text();
+          console.error("Server Error (HTML):", errorText);
+          throw new Error(`Server returned an error: ${response.status} ${response.statusText}`);
+        }
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await response.text();
+        console.error("Unexpected response format:", text);
+        throw new Error("Server returned an unexpected response format. Please check the server logs.");
       }
 
       const data = await response.json();
