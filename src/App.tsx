@@ -201,8 +201,7 @@ export default function App() {
 
   const loadingSteps = [
     "Initializing Neural Engine...",
-    "Uploading High-Resolution Video (File API)...",
-    "Processing Video on Google AI Servers...",
+    "Extracting High-Resolution Frames...",
     "Detecting Crew Activities...",
     "Analyzing Compliance Standards...",
     "Generating CVVRS Intelligence Report...",
@@ -223,16 +222,10 @@ export default function App() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      setFile(selectedFile);
+      setFile(e.target.files[0]);
       setError(null);
       setReport(null);
       setProgress(0);
-
-      // Warning for very large files
-      if (selectedFile.size > 100 * 1024 * 1024) {
-        setError(`Note: This is a large file (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB). We will use the Gemini File API for deep analysis, which handles videos up to 1 hour and 2GB.`);
-      }
     }
   };
 
@@ -352,52 +345,24 @@ export default function App() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // 1. Upload to File API for large video support
-      setLoadingStep(1); // Uploading...
-      setProgress(10);
+      // Extract frames instead of sending the whole video for speed and large file support
+      const frames = await extractFrames(file);
       
-      const uploadResult = await ai.files.upload({
-        file: file,
-        config: {
-          displayName: file.name,
-          mimeType: file.type,
-        },
-      });
-
-      // 2. Poll for processing status
-      setLoadingStep(2); // Processing...
-      let uploadedFile = await ai.files.get({ name: uploadResult.name });
-      
-      let attempts = 0;
-      while (uploadedFile.state === 'PROCESSING' && attempts < 120) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-        uploadedFile = await ai.files.get({ name: uploadResult.name });
-        attempts++;
-        setProgress(Math.min(90, 20 + attempts)); // Slow progress during processing
-      }
-
-      if (uploadedFile.state === 'FAILED') {
-        throw new Error("Video processing failed on Google servers. Please ensure the video is a standard format (MP4/H.264).");
-      }
-
-      setLoadingStep(3); // Analyzing...
-      setProgress(95);
-
       // 3. Prepare Neural Prompt with Global Learning
       const learningContext = pastCorrections.length > 0 
         ? `\nPAST GLOBAL CORRECTIONS (Learn from these mistakes across all users): ${pastCorrections.map(c => `[Context: ${c.context}] -> Correction: ${c.correction}`).join('; ')}`
         : "";
 
       const promptWithFeedback = feedback 
-        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}\n\nIMPORTANT: Please provide a concise but comprehensive report. If the video is long, summarize the key events and deviations clearly.`
-        : `${MASTER_PROMPT}${learningContext}\n\nIMPORTANT: Please provide a concise but comprehensive report. If the video is long, summarize the key events and deviations clearly.`;
+        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
+        : `${MASTER_PROMPT}${learningContext}`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
         contents: [
           {
             parts: [
-              { fileData: { fileUri: uploadedFile.uri, mimeType: uploadedFile.mimeType } },
+              ...frames.map(frame => ({ inlineData: frame })),
               { text: promptWithFeedback }
             ]
           }
