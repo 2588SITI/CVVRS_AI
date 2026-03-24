@@ -27,6 +27,7 @@ import Markdown from "react-markdown";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { auth, db, signInWithGoogle } from "./firebase";
+import { GoogleGenAI } from "@google/genai";
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -326,60 +327,66 @@ export default function App() {
         ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
         : `${MASTER_PROMPT}${learningContext}`;
 
-      console.log("Fetching API:", "/api/analyze", "Origin:", window.location.origin);
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          frames,
-          prompt: promptWithFeedback,
-          userApiKey: userApiKey,
-        }),
-      });
-
-      if (!response.ok) {
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Failed to analyze video.");
-        } else {
-          const errorText = await response.text();
-          console.error("Server Error (HTML):", errorText);
-          throw new Error(`Server returned an error: ${response.status} ${response.statusText}`);
+      // 4. Call Gemini API Directly from Frontend (AIS Guideline)
+      let apiKey = userApiKey;
+      
+      // Check if it's the admin password
+      if (userApiKey) {
+        try {
+          const verifyResponse = await fetch("/api/verify-admin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ password: userApiKey })
+          });
+          
+          if (verifyResponse.ok) {
+            // If admin password is correct, use the server-side injected key
+            apiKey = (process.env as any).GEMINI_API_KEY;
+          }
+        } catch (e) {
+          console.warn("Admin verification failed, falling back to direct key usage.");
         }
       }
-
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await response.text();
-        console.error("Unexpected response format (not JSON):", text);
-        throw new Error(`Server returned an unexpected response format (${contentType}). Status: ${response.status}`);
+      
+      if (!apiKey) {
+        throw new Error("Please provide a Gemini API Key or Admin Password.");
       }
 
-      let data;
-      const responseClone = response.clone();
-      try {
-        data = await response.json();
-      } catch (jsonError) {
-        const text = await responseClone.text();
-        console.error("JSON Parse Error. Body was:", text);
-        throw new Error("Server returned an invalid JSON response. This usually happens when the server crashes or returns an error page.");
-      }
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const contents = [
+        {
+          role: "user",
+          parts: [
+            ...frames.map((frame: any) => ({
+              inlineData: {
+                data: frame.data,
+                mimeType: frame.mimeType
+              }
+            })),
+            { text: promptWithFeedback }
+          ]
+        }
+      ];
 
-      if (!data.text) {
+      const result = await ai.models.generateContent({ 
+        model: "gemini-3-flash-preview",
+        contents 
+      });
+      const reportText = result.text;
+
+      if (!reportText) {
         throw new Error("AI failed to generate a report. Please try again with a different video.");
       }
 
-      setReport(data.text);
+      setReport(reportText);
       
       // 5. Save this run to Firebase if context was provided (Learning)
       if (feedback.trim() && user) {
         try {
           await addDoc(collection(db, "corrections"), {
             context: feedback,
-            correction: data.text?.substring(0, 1000), // Save summary for learning
+            correction: reportText.substring(0, 1000), // Save summary for learning
             userEmail: user.email || "anonymous",
             authorUid: user.uid,
             timestamp: new Date().toISOString()
