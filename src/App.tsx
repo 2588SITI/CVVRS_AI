@@ -744,8 +744,8 @@ export default function App() {
                             <FileText className="w-6 h-6 text-brand-cyan" />
                           </div>
                           <div>
-                            <h3 className="font-black text-xl tracking-tight italic glow-text uppercase">Intelligence Report</h3>
-                            <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Neural Analysis Complete</p>
+                            <h3 className="font-black text-xl tracking-tight italic glow-text uppercase print:text-black print:shadow-none">Intelligence Report</h3>
+                            <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold print:text-black/60 print:shadow-none">Neural Analysis Complete</p>
                           </div>
                         </div>
                         <div className="flex gap-3">
@@ -759,8 +759,8 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl">
-                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none">
+                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none">
+                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
                             <Markdown>{report}</Markdown>
                           </div>
