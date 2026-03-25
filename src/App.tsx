@@ -20,7 +20,8 @@ import {
   Video,
   Clock,
   Settings,
-  Database
+  Database,
+  Lock
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
@@ -376,6 +377,10 @@ export default function App() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setError("Login Required: Please sign in with Google to perform analysis and contribute to the Neural Learning History.");
+      return;
+    }
     if (!file) {
       setError("Please select a CVVRS video file first.");
       return;
@@ -658,7 +663,7 @@ export default function App() {
                   disabled={loading || !file}
                   className={cn(
                     "w-full py-6 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 group overflow-hidden relative",
-                    loading 
+                    loading || !user
                       ? "bg-white/5 text-white/20 cursor-not-allowed" 
                       : "bg-brand-cyan hover:bg-brand-cyan/90 text-black shadow-[0_0_30px_rgba(0,242,255,0.2)] active:scale-[0.98]"
                   )}
@@ -668,6 +673,11 @@ export default function App() {
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
                       Analyzing {progress}%
+                    </>
+                  ) : !user ? (
+                    <>
+                      <Lock className="w-5 h-5" />
+                      Sign In to Analyze
                     </>
                   ) : (
                     <>
