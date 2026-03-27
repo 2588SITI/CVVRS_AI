@@ -76,15 +76,17 @@ The final output must be a structured report with the following elements:
    - Locomotive ID: [Detected ID]
    - Date of Recording: [Detected Date]
    - Observation Period: [Start Time] to [End Time]
-3. Detailed Analysis: Provide a topic-wise detailed analysis of the observations.
-4. Compliance Table: Provide a table in the exact format below:
-   Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description
-   [Time] | [Time] | [Category] | [Compliant/Non-Compliant] | [Details]
+3. Detailed Analysis: Divide this section into two parts:
+   - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here FIRST. If none are found, state "No non-compliance detected."
+   - Compliance Observations: List all compliant activities and routine observations here SECOND.
+4. Compliance Summary & Deviation Table: Provide a markdown table with horizontal and vertical lines (using markdown table syntax) in the exact format below:
+| Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description |
+|---|---|---|---|---|
+| [Time] | [Time] | [Category] | [Compliance / Non-Compliance] | [Details] |
 
 D. Disciplinary Summary
 Based on the observations, provide a summary of:
 - Corrective Measures: (e.g., Counseling, Refresher Training).
-- Charge Sheet & Punishment: (e.g., Major/Minor penalty based on the severity of the violation, such as mobile use or sleeping, in accordance with DAR norms).
 
 Constraints:
 - Prioritize accuracy over speed.
@@ -527,7 +529,7 @@ export default function App() {
           </div>
           <div className="hidden md:flex items-center gap-8">
             <div className="flex items-center gap-6 pr-8 border-r border-white/10">
-              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-brand-cyan transition-all glow-text">Neural Engine</a>
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-brand-cyan glow-text">Neural Engine</a>
               <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-brand-cyan transition-all">Compliance</a>
             </div>
             
@@ -771,7 +773,7 @@ export default function App() {
 
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none">
                         <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible">
-                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-white/5 prose-th:text-white/20 prose-th:uppercase prose-th:text-[9px] prose-th:tracking-[0.3em] prose-th:font-black prose-td:text-white/50 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-td:text-black">
+                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-collapse prose-table:border prose-table:border-white/20 prose-th:border prose-th:border-white/20 prose-th:p-3 prose-th:text-white/40 prose-th:uppercase prose-th:text-[10px] prose-th:tracking-[0.2em] prose-th:font-black prose-td:border prose-td:border-white/20 prose-td:p-3 prose-td:text-white/70 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-table:border-black/30 print:prose-th:border-black/30 print:prose-th:text-black print:prose-td:border-black/30 print:prose-td:text-black">
                             <Markdown>{report}</Markdown>
                           </div>
                         </div>
