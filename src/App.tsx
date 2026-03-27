@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
@@ -70,27 +71,34 @@ When the train is stopped, check the following:
 4. Nap/Micro-Sleep: Is the crew taking a nap or showing signs of micro-sleep?
 
 C. Report Structure & Formatting
-The final output must be a structured report with the following elements:
+The final output must be a structured report with the following elements in this EXACT sequence:
+
 1. Heading: CVVRS Intelligence Analysis Report
+
 2. Subheadings:
    - Locomotive ID: [Detected ID]
    - Date of Recording: [Detected Date]
    - Observation Period: [Start Time] to [End Time]
-3. Detailed Analysis: Divide this section into two parts:
-   - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here FIRST. If none are found, state "No non-compliance detected."
-   - Compliance Observations: List all compliant activities and routine observations here SECOND.
-4. Compliance Summary & Deviation Table: Provide a markdown table with horizontal and vertical lines (using markdown table syntax) in the exact format below:
-| Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description |
-|---|---|---|---|---|
-| [Time] | [Time] | [Category] | [Compliance / Non-Compliance] | [Details] |
 
-D. Disciplinary Summary
-Based on the observations, provide a summary of:
-- Corrective Measures: (e.g., Counseling, Refresher Training).
+3. Detailed Analysis:
+   - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here FIRST. This is the most important section. If no violations are found, state "No non-compliance detected."
+   - Compliance Observations: List all compliant activities, routine checks (e.g., dress code, locomotive condition, signal calling if compliant) here SECOND.
+
+4. Compliance Summary & Deviation Table:
+   Provide a markdown table with horizontal and vertical lines (using markdown table syntax). You MUST include pipes (|) at the beginning and end of every row to ensure a proper grid structure. IMPORTANT: Each row MUST be on a new line. Do NOT combine multiple rows into a single line.
+   Format:
+   | Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description |
+   |:---|:---|:---|:---|:---|
+   | [Time] | [Time] | [Category] | [Compliance / Non-Compliance] | [Details] |
+
+5. Disciplinary Summary:
+   - Corrective Measures: (e.g., Counseling, Refresher Training).
+   IMPORTANT: The "Charge Sheet & Punishment" section must be completely removed from the analysis output.
 
 Constraints:
 - Prioritize accuracy over speed.
 - Utilize previous user corrections regarding terminology (e.g., use "Driving Desk" instead of "Control Stand").
+- Ensure the table has horizontal and vertical lines as per markdown standards.
 `;
 
 const NeuralFlow = () => {
@@ -159,6 +167,7 @@ export default function App() {
   const [feedback, setFeedback] = useState("");
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
+  const [userDeviationReport, setUserDeviationReport] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -392,6 +401,7 @@ export default function App() {
     setReport(null);
     setError(null);
     setProgress(0);
+    setUserDeviationReport("");
 
     try {
       // Check if the entered key is actually the admin password
@@ -773,11 +783,35 @@ export default function App() {
 
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none">
                         <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible">
-                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white prose-table:border-collapse prose-table:border prose-table:border-white/20 prose-th:border prose-th:border-white/20 prose-th:p-3 prose-th:text-white/40 prose-th:uppercase prose-th:text-[10px] prose-th:tracking-[0.2em] prose-th:font-black prose-td:border prose-td:border-white/20 prose-td:p-3 prose-td:text-white/70 prose-td:text-sm print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black print:prose-table:border-black/30 print:prose-th:border-black/30 print:prose-th:text-black print:prose-td:border-black/30 print:prose-td:text-black">
-                            <Markdown>{report}</Markdown>
+                          <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
+                            <Markdown remarkPlugins={[remarkGfm]}>
+                              {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
+                            </Markdown>
                           </div>
                         </div>
                       </div>
+
+                      <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-8 rounded-[2.5rem] glass-card border border-white/5 space-y-6 no-print"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="w-10 h-10 bg-brand-magenta/10 rounded-2xl flex items-center justify-center border border-brand-magenta/20">
+                            <AlertCircle className="w-5 h-5 text-brand-magenta" />
+                          </div>
+                          <div>
+                            <h4 className="font-black text-sm tracking-tight uppercase italic text-white/80">User Deviation Report</h4>
+                            <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Add manual observations or AI error reports</p>
+                          </div>
+                        </div>
+                        <textarea
+                          value={userDeviationReport}
+                          onChange={(e) => setUserDeviationReport(e.target.value)}
+                          placeholder="Enter any manual observations or AI errors here. This will be appended to the final Intelligence Report at the end."
+                          className="w-full min-h-[120px] p-6 rounded-3xl bg-white/[0.02] border border-white/10 focus:border-brand-magenta/50 focus:ring-1 focus:ring-brand-magenta/50 transition-all outline-none text-sm text-white/80 placeholder:text-white/20 resize-none custom-scrollbar"
+                        />
+                      </motion.div>
                 </motion.div>
               ) : (
                   <motion.div 
