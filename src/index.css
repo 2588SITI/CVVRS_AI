@@ -112,24 +112,37 @@ body {
 }
 
 @media print {
-  html, body {
+  html, body, #root, [data-reactroot] {
     background-color: white !important;
     color: black !important;
     overflow: visible !important;
     height: auto !important;
     min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
-  nav, footer, .lg\:col-span-5, .no-print, .ai-aura-bg, .digital-grid {
+  nav, footer, .lg\:col-span-5, .no-print, .ai-aura-bg, .digital-grid, button {
     display: none !important;
   }
   
+  main {
+    position: static !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
+  }
+
   .lg\:col-span-7 {
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     display: block !important;
     position: static !important;
+    overflow: visible !important;
   }
 
   .print-container {
@@ -141,15 +154,19 @@ body {
     box-shadow: none !important;
     backdrop-filter: none !important;
     overflow: visible !important;
+    display: block !important;
+    position: static !important;
   }
 
   .prose {
     color: black !important;
     max-width: none !important;
+    overflow: visible !important;
   }
 
   .prose * {
     color: black !important;
+    overflow: visible !important;
   }
 
   /* Table Printing Styles */
@@ -157,49 +174,49 @@ body {
     width: 100% !important;
     border-collapse: collapse !important;
     margin-bottom: 20px !important;
-    border: 2px solid black !important;
+    border: 1px solid black !important;
+    page-break-inside: auto !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+
+  thead {
+    display: table-header-group !important;
   }
 
   th, td {
     border: 1px solid black !important;
     padding: 8px !important;
     text-align: left !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     color: black !important;
+    word-wrap: break-word !important;
   }
 
   th {
     background-color: #f0f0f0 !important;
     font-weight: bold !important;
-    text-transform: none !important;
-    letter-spacing: normal !important;
   }
 
   h1, h2, h3, h4 {
     color: black !important;
-    margin-top: 20px !important;
+    margin-top: 15px !important;
     margin-bottom: 10px !important;
+    page-break-after: avoid !important;
   }
 
   p {
     margin-bottom: 10px !important;
-    font-size: 13px !important;
-    line-height: 1.5 !important;
-  }
-
-  .print-header {
-    margin-bottom: 30px !important;
-    border-bottom: 2px solid black !important;
-    padding-bottom: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
   }
 
   @page {
-    margin: 2cm;
-  }
-
-  /* Prevent page breaks inside rows */
-  tr {
-    page-break-inside: avoid !important;
+    margin: 1.5cm;
+    size: auto;
   }
 }
 

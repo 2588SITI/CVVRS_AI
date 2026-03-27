@@ -577,7 +577,7 @@ export default function App() {
       </nav>
 
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        <div className="grid lg:grid-cols-12 gap-12">
+        <div className="grid lg:grid-cols-12 gap-12 print:block">
           {/* Left Column: Controls */}
           <div className="lg:col-span-5 space-y-10">
             <motion.div 
@@ -758,7 +758,7 @@ export default function App() {
                   key="report"
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-8"
+                  className="space-y-8 print:transform-none print:opacity-100 print:block print:static print:m-0 print:p-0"
                 >
                       <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-4">
@@ -782,7 +782,7 @@ export default function App() {
                       </div>
 
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
-                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
+                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
                             <Markdown remarkPlugins={[remarkGfm]}>
                               {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
