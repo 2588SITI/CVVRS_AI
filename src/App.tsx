@@ -487,7 +487,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden">
+      <div className="min-h-screen bg-[#050505] text-white font-sans selection:bg-cyan-500/30 overflow-x-hidden print:overflow-visible print:bg-white print:text-black print:min-h-0 print:h-auto">
       <div className="ai-aura-bg" />
       <div className="fixed inset-0 digital-grid pointer-events-none" />
       
@@ -714,7 +714,7 @@ export default function App() {
           </div>
 
           {/* Right Column: Results */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 print:w-full print:p-0 print:m-0">
             <AnimatePresence mode="wait">
               {loading ? (
                 <motion.div 
@@ -781,8 +781,8 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none">
-                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible">
+                      <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
+                        <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-hidden print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
                             <Markdown remarkPlugins={[remarkGfm]}>
                               {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
