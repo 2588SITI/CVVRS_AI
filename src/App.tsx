@@ -276,11 +276,11 @@ export default function App() {
           if (frame) {
             return (
               <div key={i} className="my-4 relative group print:my-2 print:inline-block print:mr-4">
-                <div className="relative overflow-hidden rounded-xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)] w-full max-w-[400px] print:w-[74mm] print:h-[21mm] print:border-black/20 print:shadow-none">
+                <div className="relative overflow-hidden rounded-xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)] w-full max-w-[400px] h-[112px] print:w-[74mm] print:h-[21mm] print:border-black/20 print:shadow-none">
                   <img 
                     src={`data:${frame.mimeType};base64,${frame.data}`} 
                     alt={`Evidence Frame ${match[1]}`}
-                    className="w-full h-auto print:h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/30 backdrop-blur-md text-[7px] font-black text-brand-cyan uppercase tracking-widest print:bg-white/80 print:text-black print:border-black/10">
