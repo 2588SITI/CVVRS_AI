@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { 
   Train, 
   Upload, 
@@ -21,7 +21,8 @@ import {
   Clock,
   Settings,
   Database,
-  Lock
+  Lock,
+  Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
@@ -82,7 +83,8 @@ The final output must be a structured report with the following elements in this
 
 3. Detailed Analysis:
    - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here FIRST. This is the most important section. If no violations are found, state "No non-compliance detected."
-   - Compliance Observations: List all compliant activities, routine checks (e.g., dress code, locomotive condition, signal calling if compliant) here SECOND.
+     CRITICAL: For each individual Non-Compliance Observation, you MUST identify exactly ONE specific frame that best illustrates the violation. At the very end of the description for that specific observation (on a new line), insert the tag [[FRAME_IMAGE:n]] where n is the frame number. Do NOT include more than one photo per observation.
+   - Compliance Observations: List all compliant activities and routine checks here SECOND. Do NOT include frame tags in this section unless explicitly necessary for safety verification.
 
 4. Compliance Summary & Deviation Table:
    Provide a markdown table with horizontal and vertical lines (using markdown table syntax). You MUST include pipes (|) at the beginning and end of every row to ensure a proper grid structure. IMPORTANT: Each row MUST be on a new line. Do NOT combine multiple rows into a single line.
@@ -167,6 +169,7 @@ export default function App() {
   const [feedback, setFeedback] = useState("");
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
+  const [extractedFrames, setExtractedFrames] = useState<{ data: string, mimeType: string }[]>([]);
   const [userDeviationReport, setUserDeviationReport] = useState("");
   const [manualLocoNo, setManualLocoNo] = useState("");
   const [manualDateTime, setManualDateTime] = useState("");
@@ -249,6 +252,84 @@ export default function App() {
     "Neural Engine Overloaded - Retrying..."
   ];
 
+  const removeFrameFromReport = (tag: string) => {
+    if (!report) return;
+    // Use a regex that matches the exact tag case-insensitively with flexible spacing
+    const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedTag, 'gi');
+    setReport(report.replace(regex, ''));
+  };
+
+  const renderContentWithFrames = useCallback((content: any): any => {
+    if (typeof content === 'string') {
+      // Extremely permissive regex to catch variations in AI output
+      const tagRegex = /\[{1,2}\s*FRAME_IMAGE\s*[:\-]?\s*(\d+)\s*\]{1,2}/gi;
+      const parts = content.split(/(\[{1,2}\s*FRAME_IMAGE\s*[:\-]?\s*\d+\s*\]{1,2})/i);
+      
+      if (parts.length === 1) return content;
+
+      return parts.map((part, i) => {
+        const match = part.match(/\[{1,2}\s*FRAME_IMAGE\s*[:\-]?\s*(\d+)\s*\]{1,2}/i);
+        if (match) {
+          const frameIndex = parseInt(match[1]) - 1;
+          const frame = extractedFrames[frameIndex];
+          if (frame) {
+            return (
+              <div key={i} className="my-6 space-y-2 no-print relative group">
+                <div className="relative overflow-hidden rounded-2xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)]">
+                  <img 
+                    src={`data:${frame.mimeType};base64,${frame.data}`} 
+                    alt={`Evidence Frame ${match[1]}`}
+                    className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-brand-cyan/20 border border-brand-cyan/30 backdrop-blur-md text-[10px] font-black text-brand-cyan uppercase tracking-widest">
+                    Evidence Frame {match[1]}
+                  </div>
+                  
+                  {/* Delete Button */}
+                  <button 
+                    onClick={() => removeFrameFromReport(part)}
+                    className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/20 border border-red-500/30 backdrop-blur-md text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                    title="Remove from Report"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          } else {
+            return (
+              <span key={i} className="text-brand-magenta text-[10px] font-mono italic">
+                [Frame {match[1]} Missing in Buffer]
+              </span>
+            );
+          }
+        }
+        return part;
+      });
+    }
+
+    if (Array.isArray(content)) {
+      return content.map((child, i) => (
+        <React.Fragment key={i}>
+          {renderContentWithFrames(child)}
+        </React.Fragment>
+      ));
+    }
+
+    if (React.isValidElement(content)) {
+      const children = (content.props as any).children;
+      if (children) {
+        return React.cloneElement(content as React.ReactElement, {
+          children: renderContentWithFrames(children)
+        } as any);
+      }
+    }
+
+    return content;
+  }, [extractedFrames]);
+
   useEffect(() => {
     let interval: any;
     if (loading) {
@@ -261,12 +342,29 @@ export default function App() {
     return () => clearInterval(interval);
   }, [loading]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const removeFrameFromBuffer = (index: number) => {
+    setExtractedFrames(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const selectedFile = e.target.files[0];
+      setFile(selectedFile);
       setError(null);
       setReport(null);
       setProgress(0);
+      setExtractedFrames([]);
+      
+      // Auto-extract frames for preview
+      setLoading(true);
+      try {
+        const frames = await extractFrames(selectedFile);
+        setExtractedFrames(frames);
+      } catch (err: any) {
+        setError("Frame Extraction Failed: " + err.message);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -421,8 +519,12 @@ export default function App() {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // Extract frames instead of sending the whole video for speed and large file support
-      const frames = await extractFrames(file);
+      // Use existing frames if available, otherwise extract
+      let frames = extractedFrames;
+      if (frames.length === 0) {
+        frames = await extractFrames(file);
+        setExtractedFrames(frames);
+      }
       
       // 3. Prepare Neural Prompt with Global Learning
       const locoContext = manualLocoNo ? `\nIMPORTANT: The Locomotive ID for this analysis is: ${manualLocoNo}. Please use this ID in the report header.` : "";
@@ -439,7 +541,10 @@ export default function App() {
         contents: [
           {
             parts: [
-              ...frames.map(frame => ({ inlineData: frame })),
+              ...frames.flatMap((frame, index) => [
+                { text: `Frame ${index + 1}:` },
+                { inlineData: frame }
+              ]),
               { text: promptWithFeedback }
             ]
           }
@@ -702,6 +807,49 @@ export default function App() {
                   />
                 </div>
 
+                {/* Neural Frame Buffer Gallery */}
+                {extractedFrames.length > 0 && !loading && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-6 rounded-[2rem] bg-white/5 border border-white/10 backdrop-blur-md space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Eye className="w-5 h-5 text-brand-cyan" />
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white/80 italic">Neural Frame Buffer</h3>
+                      </div>
+                      <span className="text-[10px] font-mono text-white/40">{extractedFrames.length} Frames Extracted</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      {extractedFrames.map((frame, idx) => (
+                        <div key={idx} className="relative group aspect-video rounded-xl overflow-hidden border border-white/10">
+                          <img 
+                            src={`data:${frame.mimeType};base64,${frame.data}`} 
+                            alt={`Buffer Frame ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button 
+                              type="button"
+                              onClick={() => removeFrameFromBuffer(idx)}
+                              className="p-1.5 rounded-lg bg-red-500 text-white shadow-lg transform scale-90 group-hover:scale-100 transition-transform"
+                              title="Delete Frame"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-[8px] font-black text-white/80">
+                            #{idx + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-white/30 italic">Tip: Delete blurry or irrelevant frames to improve analysis accuracy. The system will automatically place one relevant photo below each non-compliance observation in the final report.</p>
+                  </motion.div>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading || !file}
@@ -802,7 +950,12 @@ export default function App() {
                             <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold print:text-black/60 print:shadow-none">Neural Analysis Complete</p>
                           </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex items-center gap-3 no-print">
+                          {extractedFrames.length > 0 && (
+                            <div className="px-3 py-1.5 rounded-xl bg-brand-cyan/10 border border-brand-cyan/20 text-[9px] font-black text-brand-cyan uppercase tracking-[0.2em]">
+                              {extractedFrames.length} Frames Buffered
+                            </div>
+                          )}
                           <button 
                             onClick={handlePrint}
                             className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group glow-border"
@@ -816,7 +969,20 @@ export default function App() {
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
                         <div className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
-                            <Markdown remarkPlugins={[remarkGfm]}>
+                            <Markdown 
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
+                                li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
+                                td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
+                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
+                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
+                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
+                                code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
+                                strong: ({ children }) => <strong className="font-bold text-white">{renderContentWithFrames(children)}</strong>,
+                                em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
+                              }}
+                            >
                               {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
                             </Markdown>
                           </div>
