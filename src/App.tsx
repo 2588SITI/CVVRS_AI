@@ -168,6 +168,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<string | null>(null);
   const [userDeviationReport, setUserDeviationReport] = useState("");
+  const [manualLocoNo, setManualLocoNo] = useState("");
+  const [manualDateTime, setManualDateTime] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -423,13 +425,14 @@ export default function App() {
       const frames = await extractFrames(file);
       
       // 3. Prepare Neural Prompt with Global Learning
+      const locoContext = manualLocoNo ? `\nIMPORTANT: The Locomotive ID for this analysis is: ${manualLocoNo}. Please use this ID in the report header.` : "";
+      const dateContext = manualDateTime ? `\nIMPORTANT: The Date/Time of Recording for this analysis is: ${manualDateTime}. Please use this in the report header.` : "";
+      
       const learningContext = pastCorrections.length > 0 
         ? `\nPAST GLOBAL CORRECTIONS (Learn from these mistakes across all users): ${pastCorrections.map(c => `[Context: ${c.context}] -> Correction: ${c.correction}`).join('; ')}`
         : "";
 
-      const promptWithFeedback = feedback 
-        ? `${MASTER_PROMPT}\n\nAdditional User Feedback to consider: ${feedback}${learningContext}`
-        : `${MASTER_PROMPT}${learningContext}`;
+      const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
       const response = await generateContentWithRetry(ai, {
         model: "gemini-3-flash-preview",
@@ -654,6 +657,35 @@ export default function App() {
                         </div>
                       </>
                     )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
+                      <Train className="w-3 h-3 text-brand-cyan" />
+                      Loco Number (Manual)
+                    </label>
+                    <input 
+                      type="text"
+                      value={manualLocoNo}
+                      onChange={(e) => setManualLocoNo(e.target.value)}
+                      placeholder="e.g. WAG9-32451"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 focus:border-brand-cyan/40 focus:bg-white/[0.04] focus:ring-0 transition-all text-sm placeholder:text-white/10 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
+                      <Clock className="w-3 h-3 text-brand-cyan" />
+                      Date/Time (Optional)
+                    </label>
+                    <input 
+                      type="text"
+                      value={manualDateTime}
+                      onChange={(e) => setManualDateTime(e.target.value)}
+                      placeholder="e.g. 28/03/2026 10:00"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 focus:border-brand-cyan/40 focus:bg-white/[0.04] focus:ring-0 transition-all text-sm placeholder:text-white/10 font-medium"
+                    />
                   </div>
                 </div>
 
