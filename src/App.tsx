@@ -275,25 +275,25 @@ export default function App() {
           const frame = extractedFrames[frameIndex];
           if (frame) {
             return (
-              <div key={i} className="my-6 space-y-2 no-print relative group">
-                <div className="relative overflow-hidden rounded-2xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)]">
+              <div key={i} className="my-4 relative group print:my-2">
+                <div className="relative overflow-hidden rounded-xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)] w-full max-w-[400px] print:max-w-[240px] print:border-black/20 print:shadow-none">
                   <img 
                     src={`data:${frame.mimeType};base64,${frame.data}`} 
                     alt={`Evidence Frame ${match[1]}`}
                     className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-brand-cyan/20 border border-brand-cyan/30 backdrop-blur-md text-[10px] font-black text-brand-cyan uppercase tracking-widest">
+                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/30 backdrop-blur-md text-[8px] font-black text-brand-cyan uppercase tracking-widest print:bg-white/80 print:text-black print:border-black/10">
                     Evidence Frame {match[1]}
                   </div>
                   
-                  {/* Delete Button */}
+                  {/* Delete Button - Hidden on Print */}
                   <button 
                     onClick={() => removeFrameFromReport(part)}
-                    className="absolute top-4 right-4 p-2 rounded-xl bg-red-500/20 border border-red-500/30 backdrop-blur-md text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 backdrop-blur-md text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 no-print"
                     title="Remove from Report"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
