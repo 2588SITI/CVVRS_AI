@@ -275,25 +275,25 @@ export default function App() {
           const frame = extractedFrames[frameIndex];
           if (frame) {
             return (
-              <div key={i} className="my-4 relative group print:my-2">
-                <div className="relative overflow-hidden rounded-xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)] w-full max-w-[400px] print:max-w-[240px] print:border-black/20 print:shadow-none">
+              <div key={i} className="my-4 relative group print:my-2 print:inline-block print:mr-4">
+                <div className="relative overflow-hidden rounded-xl border border-brand-cyan/30 shadow-[0_0_20px_rgba(0,242,255,0.1)] w-full max-w-[400px] print:w-[74mm] print:h-auto print:border-black/20 print:shadow-none">
                   <img 
                     src={`data:${frame.mimeType};base64,${frame.data}`} 
                     alt={`Evidence Frame ${match[1]}`}
                     className="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/30 backdrop-blur-md text-[8px] font-black text-brand-cyan uppercase tracking-widest print:bg-white/80 print:text-black print:border-black/10">
-                    Evidence Frame {match[1]}
+                  <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-full bg-brand-cyan/20 border border-brand-cyan/30 backdrop-blur-md text-[7px] font-black text-brand-cyan uppercase tracking-widest print:bg-white/80 print:text-black print:border-black/10">
+                    Frame {match[1]}
                   </div>
                   
                   {/* Delete Button - Hidden on Print */}
                   <button 
                     onClick={() => removeFrameFromReport(part)}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-red-500/20 border border-red-500/30 backdrop-blur-md text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 no-print"
+                    className="absolute top-1 right-1 p-1 rounded-lg bg-red-500/20 border border-red-500/30 backdrop-blur-md text-red-500 hover:bg-red-500 hover:text-white transition-all opacity-0 group-hover:opacity-100 no-print"
                     title="Remove from Report"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
