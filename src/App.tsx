@@ -642,13 +642,13 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-2xl font-black tracking-tighter italic glow-text">CVVRS <span className="text-brand-cyan">AI</span></h1>
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.3em]">Neural Analysis Engine</p>
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">Neural Analysis Engine</p>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-8">
             <div className="flex items-center gap-6 pr-8 border-r border-white/10">
               <a href="#" className="text-[10px] font-black uppercase tracking-widest text-brand-cyan glow-text">Neural Engine</a>
-              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-brand-cyan transition-all">Compliance</a>
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-brand-cyan transition-all">Compliance</a>
             </div>
             
             {user ? (
@@ -664,7 +664,7 @@ export default function App() {
             ) : (
               <button 
                 onClick={handleSignIn}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 border border-white/10 text-white/40 hover:bg-brand-cyan hover:text-black hover:border-brand-cyan"
+                className="flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all bg-white/10 border border-white/20 text-white/60 hover:bg-brand-cyan hover:text-black hover:border-brand-cyan"
               >
                 Sign In
               </button>
@@ -753,11 +753,11 @@ export default function App() {
                     ) : (
                       <>
                         <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-cyan/10 transition-all duration-500 border border-white/5 group-hover:border-brand-cyan/30">
-                          <Video className="w-10 h-10 text-white/20 group-hover:text-brand-cyan transition-colors" />
+                          <Video className="w-10 h-10 text-white/40 group-hover:text-brand-cyan transition-colors" />
                         </div>
                         <div>
                           <p className="font-black text-white/80 text-lg tracking-tight group-hover:text-white transition-colors">Load CVVRS Footage</p>
-                          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Optimized for large video files</p>
+                          <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-1">Optimized for large video files</p>
                           <p className="text-[9px] text-brand-cyan/60 font-black uppercase tracking-widest mt-3">Use standard MP4 (H.264) for best results</p>
                         </div>
                       </>
@@ -776,11 +776,11 @@ export default function App() {
                       value={manualLocoNo}
                       onChange={(e) => setManualLocoNo(e.target.value)}
                       placeholder="e.g. WAG9-32451"
-                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 focus:border-brand-cyan/40 focus:bg-white/[0.04] focus:ring-0 transition-all text-sm placeholder:text-white/10 font-medium"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/40 font-medium"
                     />
                   </div>
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 ml-1 flex items-center gap-2">
                       <Clock className="w-3 h-3 text-brand-cyan" />
                       Date/Time (Optional)
                     </label>
@@ -789,13 +789,13 @@ export default function App() {
                       value={manualDateTime}
                       onChange={(e) => setManualDateTime(e.target.value)}
                       placeholder="e.g. 28/03/2026 10:00"
-                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 focus:border-brand-cyan/40 focus:bg-white/[0.04] focus:ring-0 transition-all text-sm placeholder:text-white/10 font-medium"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 font-medium"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1 flex items-center gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 ml-1 flex items-center gap-2">
                     <MessageSquare className="w-3 h-3 text-brand-cyan" />
                     Neural Context & Corrections
                   </label>
@@ -803,7 +803,7 @@ export default function App() {
                     value={feedback}
                     onChange={(e) => setFeedback(e.target.value)}
                     placeholder="If the previous result was wrong, provide corrections here..."
-                    className="w-full h-28 px-6 py-5 rounded-[1.5rem] bg-white/[0.02] border border-white/5 focus:border-brand-cyan/40 focus:bg-white/[0.04] focus:ring-0 transition-all text-sm placeholder:text-white/10 resize-none font-medium"
+                    className="w-full h-28 px-6 py-5 rounded-[1.5rem] bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 resize-none font-medium"
                   />
                 </div>
 
@@ -819,7 +819,7 @@ export default function App() {
                         <Eye className="w-5 h-5 text-brand-cyan" />
                         <h3 className="text-sm font-black uppercase tracking-widest text-white/80 italic">Neural Frame Buffer</h3>
                       </div>
-                      <span className="text-[10px] font-mono text-white/40">{extractedFrames.length} Frames Extracted</span>
+                      <span className="text-[10px] font-mono text-white/70">{extractedFrames.length} Frames Extracted</span>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
@@ -846,7 +846,7 @@ export default function App() {
                         </div>
                       ))}
                     </div>
-                    <p className="text-[9px] text-white/30 italic">Tip: Delete blurry or irrelevant frames to improve analysis accuracy. The system will automatically place one relevant photo below each non-compliance observation in the final report.</p>
+                    <p className="text-[9px] text-white/60 italic">Tip: Delete blurry or irrelevant frames to improve analysis accuracy. The system will automatically place one relevant photo below each non-compliance observation in the final report.</p>
                   </motion.div>
                 )}
 
@@ -856,7 +856,7 @@ export default function App() {
                   className={cn(
                     "w-full py-6 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-4 group overflow-hidden relative",
                     loading || !user
-                      ? "bg-white/5 text-white/20 cursor-not-allowed" 
+                      ? "bg-white/5 text-white/40 cursor-not-allowed" 
                       : "bg-brand-cyan hover:bg-brand-cyan/90 text-black shadow-[0_0_30px_rgba(0,242,255,0.2)] active:scale-[0.98]"
                   )}
                 >
@@ -914,12 +914,12 @@ export default function App() {
                       </div>
                     </div>
                     <h3 className="text-3xl font-black mt-10 mb-3 tracking-tight">Neural Processing</h3>
-                    <p className="text-white/30 text-[11px] font-black uppercase tracking-[0.4em] h-6">
+                    <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.4em] h-6">
                       {loadingSteps[loadingStep]}
                     </p>
                     
                     <div className="mt-16 space-y-4 w-full max-w-md mx-auto">
-                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/20">
+                      <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
                         <span>Extraction Progress</span>
                         <span>{progress}%</span>
                       </div>
@@ -947,7 +947,7 @@ export default function App() {
                           </div>
                           <div>
                             <h3 className="font-black text-xl tracking-tight italic glow-text uppercase print:text-black print:shadow-none">Intelligence Report</h3>
-                            <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold print:text-black/60 print:shadow-none">Neural Analysis Complete</p>
+                            <p className="text-[10px] text-white/60 uppercase tracking-[0.3em] font-bold print:text-black/60 print:shadow-none">Neural Analysis Complete</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 no-print">
@@ -1000,14 +1000,14 @@ export default function App() {
                           </div>
                           <div>
                             <h4 className="font-black text-sm tracking-tight uppercase italic text-white/80">User Deviation Report</h4>
-                            <p className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Add manual observations or AI error reports</p>
+                            <p className="text-[10px] text-white/60 uppercase tracking-widest font-bold">Add manual observations or AI error reports</p>
                           </div>
                         </div>
                         <textarea
                           value={userDeviationReport}
                           onChange={(e) => setUserDeviationReport(e.target.value)}
                           placeholder="Enter any manual observations or AI errors here. This will be appended to the final Intelligence Report at the end."
-                          className="w-full min-h-[120px] p-6 rounded-3xl bg-white/[0.02] border border-white/10 focus:border-brand-magenta/50 focus:ring-1 focus:ring-brand-magenta/50 transition-all outline-none text-sm text-white/80 placeholder:text-white/20 resize-none custom-scrollbar"
+                          className="w-full min-h-[120px] p-6 rounded-3xl bg-white/[0.05] border border-white/20 focus:border-brand-magenta/50 focus:ring-1 focus:ring-brand-magenta/50 transition-all outline-none text-sm text-white/90 placeholder:text-white/40 resize-none custom-scrollbar"
                         />
                       </motion.div>
                 </motion.div>
@@ -1020,22 +1020,22 @@ export default function App() {
                   >
                     <div className="w-24 h-24 bg-white/[0.02] rounded-[2rem] flex items-center justify-center mb-8 border border-white/5 relative group">
                       <div className="absolute inset-0 bg-brand-cyan/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                      <Eye className="w-12 h-12 text-white/10 group-hover:text-brand-cyan transition-colors" />
+                      <Eye className="w-12 h-12 text-white/30 group-hover:text-brand-cyan transition-colors" />
                     </div>
-                    <h3 className="text-2xl font-black text-white/40 italic tracking-tight uppercase glow-text">Neural Standby</h3>
-                    <p className="text-white/20 text-sm max-w-xs mt-3 font-medium">
+                    <h3 className="text-2xl font-black text-white/60 italic tracking-tight uppercase glow-text">Neural Standby</h3>
+                    <p className="text-white/40 text-sm max-w-xs mt-3 font-medium">
                       Load CVVRS footage to begin high-speed automated intelligence analysis.
                     </p>
                     
                     <div className="mt-16 grid grid-cols-2 gap-6 w-full max-w-md">
                       <div className="p-6 rounded-[2rem] glass-card border border-white/5 text-left group hover:bg-white/[0.04] transition-all glow-border">
                         <Activity className="w-6 h-6 text-brand-cyan/40 mb-4 group-hover:scale-110 transition-transform" />
-                        <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-black">Fast Engine</p>
+                        <p className="text-[9px] uppercase tracking-[0.3em] text-white/50 font-black">Fast Engine</p>
                         <p className="text-xs text-white/40 mt-2 font-medium leading-relaxed">Multi-frame parallel processing logic</p>
                       </div>
                       <div className="p-6 rounded-[2rem] glass-card border border-white/5 text-left group hover:bg-white/[0.04] transition-all glow-border">
                         <ShieldAlert className="w-6 h-6 text-brand-magenta/40 mb-4 group-hover:scale-110 transition-transform" />
-                        <p className="text-[9px] uppercase tracking-[0.3em] text-white/20 font-black">Compliance</p>
+                        <p className="text-[9px] uppercase tracking-[0.3em] text-white/50 font-black">Compliance</p>
                         <p className="text-xs text-white/40 mt-2 font-medium leading-relaxed">Strict Indian Railway rulebook adherence</p>
                       </div>
                     </div>
@@ -1071,15 +1071,15 @@ export default function App() {
 
               {!isAuthReady ? (
                 <div className="h-20 flex items-center justify-center">
-                  <Loader2 className="w-6 h-6 text-white/10 animate-spin" />
+                  <Loader2 className="w-6 h-6 text-white/30 animate-spin" />
                 </div>
               ) : !user ? (
                 <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center space-y-4">
                   <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <ShieldAlert className="w-6 h-6 text-white/20" />
+                    <ShieldAlert className="w-6 h-6 text-white/50" />
                   </div>
                   <p className="text-xs text-white/40 font-black uppercase tracking-widest">Authentication Required</p>
-                  <p className="text-[10px] text-white/20 font-medium max-w-[200px] mx-auto">Sign in to sync your analysis with the global neural network.</p>
+                  <p className="text-[10px] text-white/50 font-medium max-w-[200px] mx-auto">Sign in to sync your analysis with the global neural network.</p>
                   <button 
                     onClick={handleSignIn}
                     className="px-8 py-3 rounded-xl bg-cyan-600 text-white text-[10px] font-black uppercase tracking-widest hover:bg-cyan-50 hover:text-black transition-all shadow-xl shadow-cyan-600/20"
@@ -1090,10 +1090,10 @@ export default function App() {
               ) : pastCorrections.length === 0 ? (
                 <div className="p-10 rounded-[2rem] border-2 border-dashed border-white/5 bg-white/[0.01] text-center">
                   <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Database className="w-6 h-6 text-white/10" />
+                    <Database className="w-6 h-6 text-white/30" />
                   </div>
-                  <p className="text-xs text-white/20 font-black uppercase tracking-widest">No global corrections recorded yet</p>
-                  <p className="text-[10px] text-white/10 mt-2 font-medium">AI will learn from your first correction</p>
+                  <p className="text-xs text-white/50 font-black uppercase tracking-widest">No global corrections recorded yet</p>
+                  <p className="text-[10px] text-white/40 mt-2 font-medium">AI will learn from your first correction</p>
                 </div>
               ) : (
                 <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
@@ -1110,7 +1110,7 @@ export default function App() {
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-black text-brand-cyan uppercase tracking-widest glow-text">Global Node #{pastCorrections.length - idx}</span>
                         </div>
-                        <span className="text-[9px] font-bold text-white/20 uppercase tracking-widest">
+                        <span className="text-[9px] font-bold text-white/50 uppercase tracking-widest">
                           {new Date(item.timestamp).toLocaleDateString()} • {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
@@ -1136,13 +1136,13 @@ export default function App() {
             <ShieldAlert className="w-6 h-6 group-hover:text-cyan-500 transition-colors" />
             <span className="text-lg font-black tracking-tighter italic">CVVRS AI</span>
           </div>
-          <p className="text-white/10 text-[10px] tracking-[0.4em] uppercase font-black">
+          <p className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-black">
             © 2026 Indian Railways • Neural Safety Division • V4.0.2
           </p>
           <div className="flex gap-8">
-            <a href="#" className="text-white/10 hover:text-cyan-500/50 transition-all"><Zap className="w-6 h-6" /></a>
-            <a href="#" className="text-white/10 hover:text-magenta-500/50 transition-all"><Cpu className="w-6 h-6" /></a>
-            <a href="#" className="text-white/10 hover:text-magenta-500/50 transition-all"><History className="w-6 h-6" /></a>
+            <a href="#" className="text-white/40 hover:text-cyan-500/50 transition-all"><Zap className="w-6 h-6" /></a>
+            <a href="#" className="text-white/40 hover:text-magenta-500/50 transition-all"><Cpu className="w-6 h-6" /></a>
+            <a href="#" className="text-white/40 hover:text-magenta-500/50 transition-all"><History className="w-6 h-6" /></a>
           </div>
         </div>
       </footer>
@@ -1172,7 +1172,7 @@ export default function App() {
                     </div>
                     <div>
                       <h3 className="text-xl font-black tracking-tight italic">API Configuration</h3>
-                      <p className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Personalize Neural Engine</p>
+                      <p className="text-[10px] text-white/60 uppercase tracking-[0.3em] font-bold">Personalize Neural Engine</p>
                     </div>
                   </div>
                   <button 
