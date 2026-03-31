@@ -510,7 +510,8 @@ export default function App() {
 
     try {
       // Check if the entered key is actually the admin password
-      const adminPassword = process.env.ADMIN_PASSWORD;
+      // Use process.env directly (defined by Vite build tool)
+      const adminPassword = process.env.ADMIN_PASSWORD || "";
       let apiKey = userApiKey;
 
       if (adminPassword && userApiKey === adminPassword) {
