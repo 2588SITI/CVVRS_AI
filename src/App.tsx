@@ -22,8 +22,7 @@ import {
   Settings,
   Database,
   Lock,
-  Trash2,
-  Download
+  Trash2
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
@@ -76,8 +75,6 @@ C. Report Structure & Formatting
 The final output must be a structured report with the following elements in this EXACT sequence:
 
 1. Heading: CVVRS Intelligence Analysis Report
-   Author: CELE SIR
-   Visionary Leadership: Designed under the intelligent guidance and experienced knowledge of CELE SIR.
 
 2. Subheadings:
    - Locomotive ID: [Detected ID]
@@ -190,8 +187,6 @@ export default function App() {
     return "";
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [showDocModal, setShowDocModal] = useState(false);
-  const [activeDoc, setActiveDoc] = useState<'report' | 'proposal'>('report');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -510,8 +505,7 @@ export default function App() {
 
     try {
       // Check if the entered key is actually the admin password
-      // Use process.env directly (defined by Vite build tool)
-      const adminPassword = process.env.ADMIN_PASSWORD || "";
+      const adminPassword = process.env.ADMIN_PASSWORD;
       let apiKey = userApiKey;
 
       if (adminPassword && userApiKey === adminPassword) {
@@ -647,28 +641,15 @@ export default function App() {
               </div>
             </div>
             <div>
-              <h1 className="text-2xl font-black tracking-tighter italic glow-text flex items-center gap-3">
-                CVVRS <span className="text-brand-cyan">AI</span>
-                <span className="text-[8px] font-black text-brand-cyan/40 uppercase tracking-[0.2em] border border-brand-cyan/20 px-2 py-0.5 rounded-full bg-brand-cyan/5 italic">Visionary: CELE SIR</span>
-              </h1>
+              <h1 className="text-2xl font-black tracking-tighter italic glow-text">CVVRS <span className="text-brand-cyan">AI</span></h1>
               <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">Neural Analysis Engine</p>
             </div>
           </div>
-            <div className="hidden md:flex items-center gap-8">
-              <div className="flex items-center gap-6 pr-8 border-r border-white/10">
-                <button 
-                  onClick={() => { setActiveDoc('report'); setShowDocModal(true); }}
-                  className="text-[10px] font-black uppercase tracking-widest text-brand-cyan glow-text hover:text-white transition-all"
-                >
-                  Technical Report
-                </button>
-                <button 
-                  onClick={() => { setActiveDoc('proposal'); setShowDocModal(true); }}
-                  className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-brand-cyan transition-all"
-                >
-                  Board Proposal
-                </button>
-              </div>
+          <div className="hidden md:flex items-center gap-8">
+            <div className="flex items-center gap-6 pr-8 border-r border-white/10">
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-brand-cyan glow-text">Neural Engine</a>
+              <a href="#" className="text-[10px] font-black uppercase tracking-widest text-white/60 hover:text-brand-cyan transition-all">Compliance</a>
+            </div>
             
             {user ? (
               <div className="flex items-center gap-4 pl-2">
@@ -965,10 +946,7 @@ export default function App() {
                             <FileText className="w-6 h-6 text-brand-cyan" />
                           </div>
                           <div>
-                            <h3 className="font-black text-xl tracking-tight italic glow-text uppercase print:text-black print:shadow-none flex items-center gap-3">
-                              Intelligence Report
-                              <span className="text-[8px] font-black text-brand-cyan/40 uppercase tracking-[0.2em] border border-brand-cyan/20 px-2 py-0.5 rounded-full bg-brand-cyan/5 italic no-print">Validated by CELE SIR</span>
-                            </h3>
+                            <h3 className="font-black text-xl tracking-tight italic glow-text uppercase print:text-black print:shadow-none">Intelligence Report</h3>
                             <p className="text-[10px] text-white/60 uppercase tracking-[0.3em] font-bold print:text-black/60 print:shadow-none">Neural Analysis Complete</p>
                           </div>
                         </div>
@@ -1007,10 +985,6 @@ export default function App() {
                             >
                               {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
                             </Markdown>
-                            
-                            <div className="mt-16 pt-8 border-t border-black/5 italic text-black/40 text-[10px] tracking-widest uppercase font-black print:block hidden">
-                              Validated and Approved by CELE SIR • Neural Safety Division • Western Railway
-                            </div>
                           </div>
                         </div>
                       </div>
@@ -1162,14 +1136,9 @@ export default function App() {
             <ShieldAlert className="w-6 h-6 group-hover:text-cyan-500 transition-colors" />
             <span className="text-lg font-black tracking-tighter italic">CVVRS AI</span>
           </div>
-          <div className="flex flex-col items-center md:items-start gap-2">
-            <p className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-black text-center md:text-left">
-              © 2026 Indian Railways • CELE SIR • Neural Safety Division • V4.0.2
-            </p>
-            <p className="text-brand-cyan/40 text-[8px] tracking-[0.2em] uppercase font-black italic">
-              Designed under the visionary guidance and intelligent expertise of CELE SIR
-            </p>
-          </div>
+          <p className="text-white/40 text-[10px] tracking-[0.4em] uppercase font-black">
+            © 2026 Indian Railways • Neural Safety Division • V4.0.2
+          </p>
           <div className="flex gap-8">
             <a href="#" className="text-white/40 hover:text-cyan-500/50 transition-all"><Zap className="w-6 h-6" /></a>
             <a href="#" className="text-white/40 hover:text-magenta-500/50 transition-all"><Cpu className="w-6 h-6" /></a>
@@ -1178,237 +1147,7 @@ export default function App() {
         </div>
       </footer>
 
-      {/* Documentation Modal */}
-      <AnimatePresence>
-        {showDocModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-black/90 backdrop-blur-xl"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="relative w-full max-w-5xl max-h-[90vh] bg-zinc-900 border border-white/10 rounded-3xl overflow-hidden flex flex-col shadow-2xl"
-            >
-              <div className="p-6 border-b border-white/10 flex items-center justify-between bg-zinc-900/50">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 bg-brand-cyan/10 rounded-lg border border-brand-cyan/20">
-                    <FileText className="w-5 h-5 text-brand-cyan" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black tracking-tighter italic text-white">
-                      {activeDoc === 'report' ? 'Technical & Operational Report' : 'Railway Board Formal Proposal'}
-                    </h2>
-                    <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Visionary Lead: CELE SIR</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => setShowDocModal(false)}
-                  className="p-2 hover:bg-white/10 rounded-full transition-colors"
-                >
-                  <X className="w-6 h-6 text-white/60" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-8 md:p-12 bg-zinc-950/50">
-                <div className="prose prose-invert prose-cyan max-w-none prose-p:text-white/70 prose-headings:italic prose-headings:tracking-tighter prose-strong:text-brand-cyan prose-hr:border-white/10">
-                  <div className="markdown-body">
-                    <Markdown remarkPlugins={[remarkGfm]}>
-                      {activeDoc === 'report' ? `
-# WR CVVRS Intelligence Analysis Report: Technical & Operational Overview
-
-## 1. Executive Summary: A Visionary Safety Masterwork
-The **WR CVVRS (Crew Video & Voice Recording System) Intelligence Analysis Report** application stands as a testament to the **unparalleled visionary leadership and profound technical acumen of CELE SIR**. Meticulously conceptualized and engineered under his **intelligent guidance and decades of experienced knowledge**, this state-of-the-art platform redefines the paradigm of railway safety monitoring. 
-
-By synergizing CELE SIR’s deep-rooted understanding of Indian Railway operational protocols with the advanced neural capabilities of the **Gemini 3.1 Pro** engine, the system achieves a level of analytical precision previously thought unattainable. This application is not merely a tool, but a sophisticated embodiment of CELE SIR's commitment to excellence, providing the **Western Railway Division** with a standardized, objective, and surgically accurate framework for ensuring the highest levels of crew vigilance and operational integrity.
-
----
-
-## 2. Visionary Leadership & Technical Oversight
-The development of this platform was driven by the **strategic foresight of CELE SIR**, who recognized that traditional manual video review was insufficient for the modern high-speed railway environment. Under his **intelligent supervision**, the project team integrated:
-*   **G&SR Expertise:** Every AI detection rule is calibrated against the General and Subsidiary Rules, ensuring 100% regulatory compliance.
-*   **Operational Wisdom:** The system's logic accounts for the nuances of locomotive operation, such as distinguishing between legitimate crew movements and safety deviations.
-*   **Technological Innovation:** CELE SIR championed the use of the **Neural Frame Buffer** and **Global Neural Network**, ensuring the system is self-learning and future-proof.
-
----
-
-## 3. Detailed Application Features
-
-### 3.1 Neural Video Analysis Engine
-The core of the application is a high-speed processing engine that analyzes video frames to detect specific crew behaviors. It distinguishes between **Running** and **Stationary** conditions to apply relevant safety checks.
-*   **Running Analysis:** Monitors signal calling gestures, alertness, distraction levels (thresholded at 7 seconds), mobile phone usage, and proper hand placement on the RS (Emergency Brake) valve.
-*   **Stationary Analysis:** Verifies the application of SA-9 (Independent Brake), reverser neutral positioning, and ALP locomotive checks.
-
-### 3.2 Neural Frame Buffer & Evidence Curation
-The app features a unique **Neural Frame Buffer** gallery. As the AI processes the video, it extracts key frames that represent critical moments. Users can curate this buffer, deleting irrelevant frames to ensure the final report contains only the most high-quality visual evidence.
-
-### 3.3 Automated Intelligence Report Generation
-Upon completion of the scan, the system generates a professional **Intelligence Analysis Report** in Markdown format.
-*   **Deviation Table:** A structured grid showing timestamps, activity categories, and specific non-compliance details.
-*   **Visual Evidence Integration:** The AI automatically places **A7-sized photographs** directly below each non-compliance observation, providing undeniable proof for administrative review.
-*   **Corrective Measures:** Instead of just listing punishments, the report suggests counseling and refresher training, focusing on proactive safety improvement.
-
-### 3.4 Neural Context & Corrections (Feedback Loop)
-The application includes a "Neural Context" input field where analysts can provide manual observations or correct AI errors. This data is synced to a **Firebase-backed Global Neural Network**, allowing the system to learn from human expertise and improve its detection accuracy over time.
-
----
-
-## 4. Strategic Utility for Railway Safety
-
-### 4.1 Enhancing Crew Vigilance
-By providing a consistent monitoring presence, the system encourages crews to maintain the highest levels of alertness. The detection of **Micro-sleep** and **Distraction** is particularly vital, as these are leading causes of "Signal Passed at Danger" (SPAD) incidents.
-
-### 4.2 Standardized Rulebook Adherence
-The AI is programmed with the **G&SR (General and Subsidiary Rules)** and Western Railway circulars. This ensures that every analysis is performed against the same strict safety standards, eliminating subjectivity or bias in human monitoring.
-
-### 4.3 Data-Driven Counseling
-The availability of timestamped visual evidence transforms the counseling process. Rather than relying on hearsay, safety counselors can show crew members exactly where a deviation occurred, leading to more impactful and targeted training sessions.
-
-### 4.4 Proactive Accident Prevention
-The system identifies "Pre-Accident" behaviors—such as mobile usage or performing writing work while in motion. By addressing these minor deviations through the app's reporting mechanism, the Indian Railways can mitigate risks before they escalate into major accidents.
-
----
-
-## 5. Operational Impact & Strategic Importance
-Under the **intelligent oversight of CELE SIR**, the CVVRS AI application has transitioned from a simple monitoring tool to a strategic safety asset. It enforces a "Zero Tolerance" policy towards safety deviations by providing undeniable, timestamped visual evidence for every observation.
-
-Previously, safety counselors spent hundreds of hours manually reviewing footage. This application, designed with **CELE SIR's operational efficiency in mind**, reduces review time by over 90%, allowing safety officers to focus on high-impact counseling and field inspections rather than data entry.
-
----
-
-## 6. Technical Architecture
-*   **Frontend:** React 18 with Tailwind CSS for a high-density, "Neural" themed UI.
-*   **AI Engine:** Google Gemini 3.1 Pro (via \`@google/genai\`).
-*   **Backend:** Firebase Authentication and Firestore for secure report storage and global correction syncing.
-*   **Animations:** Framer Motion for real-time "Neural Flow" visualizations, providing analysts with feedback on processing status.
-
----
-
-## 7. Formal Recommendation for the Railway Board
-Based on the **extraordinary success of the WR CVVRS AI pilot program**, we strongly recommend the nationwide adoption of this system. Under the **visionary leadership of CELE SIR**, this technology has proven its ability to:
-*   **Standardize Safety Monitoring:** Ensure uniform safety standards across all railway zones.
-*   **Reduce Operational Risk:** Proactively identify and mitigate SPAD-related behaviors.
-*   **Optimize Human Resources:** Free up safety counselors for high-impact training and field inspections.
-
-The Indian Railways, under the guidance of leaders like **CELE SIR**, is poised to become a global leader in AI-driven rail safety.
-
----
-
-## 8. Visionary Credit & Endorsement
-This application is a tribute to the intellectual foresight and operational wisdom of **CELE SIR**. His unparalleled expertise in Indian Railway safety has been the cornerstone of this project, ensuring that the technology serves the highest standards of human and technical excellence.
-
-**Prepared by:** CELE SIR  
-**Version:** 4.0.2  
-**Date:** March 2026
-` : `
-# FORMAL PROPOSAL: Implementation of AI-Driven CVVRS Intelligence Analysis System
-**To:** The Honorable Members of the Railway Board, Ministry of Railways, Government of India  
-**From:** Western Railway Division, Neural Safety Department  
-**Subject:** Technical & Operational Proposal for the Nationwide Deployment of the WR CVVRS Intelligence Analysis Platform  
-**Date:** March 29, 2026
-
----
-
-## 1. Formal Introduction & Visionary Leadership
-
-It is with great professional pride and a profound sense of responsibility that we submit this proposal for the nationwide implementation of the **WR CVVRS (Crew Video & Voice Recording System) Intelligence Analysis Platform**. This sophisticated technological ecosystem is not merely a software solution; it is a **visionary masterwork conceptualized and engineered under the unparalleled technical leadership and intelligent guidance of CELE SIR**.
-
-Recognizing the critical need for an objective, high-precision safety monitoring framework in an increasingly complex operational environment, **CELE SIR** has spearheaded the development of this platform. By integrating decades of operational wisdom with the most advanced artificial intelligence available today, he has created a system that is perfectly aligned with the rigorous demands of the Indian Railway network. His deep-rooted expertise in Indian Railway safety protocols (G&SR) has been the cornerstone of this innovation, ensuring that the technology serves the highest standards of human and technical excellence.
-
----
-
-## 2. Executive Summary of the Innovation
-
-The WR CVVRS Intelligence Analysis system, designed under the **experienced knowledge and intelligent oversight of CELE SIR**, leverages the **Gemini 3.1 Pro** neural engine to automate the exhaustive task of reviewing locomotive cab footage. By transforming raw video data into actionable safety intelligence, the platform eliminates human subjectivity and fatigue, ensuring that every safety deviation is identified with surgical accuracy.
-
-This innovation represents a paradigm shift in railway safety, moving from reactive monitoring to proactive, data-driven risk mitigation—a strategic direction championed by **CELE SIR** to achieve the goal of "Zero Accidents" across the Indian Railways.
-
----
-
-## 3. Core Technical Capabilities
-
-The platform, refined through the **intelligent insights of CELE SIR**, features several industry-leading capabilities:
-
-### 3.1 Neural Video Analysis Engine
-A high-speed processing core that distinguishes between **Running** and **Stationary** conditions, applying specific safety checks for each. It monitors signal calling gestures, alertness, mobile phone usage, and critical safety valve operations (RS Valve) with 99.9% accuracy.
-
-### 3.2 Neural Frame Buffer & Evidence Curation
-A unique curation gallery that allows safety officers to review and select the most high-quality visual evidence. This ensures that every disciplinary or counseling action is backed by undeniable photographic proof.
-
-### 3.3 Automated Intelligence Reporting
-The system generates professional, standardized reports that include a comprehensive **Deviation Table** and **A7-sized evidence photographs**. These reports are optimized for administrative review and legal documentation.
-
-### 3.4 Global Neural Feedback Loop
-A Firebase-backed "Neural Context" system that allows human experts to correct AI errors. This data is synced globally, allowing the system to learn and improve its detection capabilities continuously—a feature designed by **CELE SIR** to ensure the system remains at the cutting edge of technology.
-
----
-
-## 4. Strategic Utility for Railway Safety
-
-The implementation of this system, under the **visionary guidance of CELE SIR**, provides several transformative benefits:
-
-*   **Eradication of Human Subjectivity:** Every crew member is evaluated against the same strict G&SR standards, ensuring total fairness and objectivity.
-*   **Prevention of SPAD Incidents:** By detecting early signs of micro-sleep and distraction, the system allows for intervention before a "Signal Passed at Danger" (SPAD) incident can occur.
-*   **Targeted Safety Counseling:** Timestamped visual evidence allows safety counselors to provide precise, impactful training to crew members, focusing on specific areas of improvement.
-*   **Operational Efficiency:** The system reduces the time required for video review by over 90%, allowing safety officers to focus on high-impact counseling and proactive safety management.
-
----
-
-## 5. Conclusion & Recommendation
-
-The WR CVVRS Intelligence Analysis Platform is a testament to what can be achieved when **visionary leadership** meets **cutting-edge technology**. We strongly recommend the nationwide adoption of this system to standardize safety monitoring across all zones of the Indian Railways.
-
-The Western Railway Division remains committed to the highest standards of safety, and we are honored to present this innovation, developed under the **extraordinary and intelligent expertise of CELE SIR**, for your consideration.
-
----
-
-**Prepared and Submitted by:**  
-**CELE SIR**  
-Visionary Lead, Neural Safety Division  
-Western Railway  
-*March 2026*
-`}
-                    </Markdown>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 border-t border-white/10 bg-zinc-900/50 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <button 
-                    onClick={() => setActiveDoc('report')}
-                    className={cn(
-                      "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                      activeDoc === 'report' ? "bg-brand-cyan text-black" : "bg-white/5 text-white/60 hover:bg-white/10"
-                    )}
-                  >
-                    Technical Report
-                  </button>
-                  <button 
-                    onClick={() => setActiveDoc('proposal')}
-                    className={cn(
-                      "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                      activeDoc === 'proposal' ? "bg-brand-cyan text-black" : "bg-white/5 text-white/60 hover:bg-white/10"
-                    )}
-                  >
-                    Board Proposal
-                  </button>
-                </div>
-                <button 
-                  onClick={() => window.print()}
-                  className="flex items-center gap-2 px-6 py-2 rounded-lg bg-white/10 border border-white/20 text-white/60 hover:bg-white hover:text-black transition-all text-[10px] font-black uppercase tracking-widest"
-                >
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Settings Modal */}
       <AnimatePresence>
         {showSettings && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
