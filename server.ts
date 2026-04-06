@@ -18,7 +18,7 @@ async function startServer() {
 
   // Vite middleware for development
   const distPath = path.resolve(__dirname, 'dist');
-  const isProduction = process.env.NODE_ENV === "production" || fs.existsSync(distPath);
+  const isProduction = process.env.NODE_ENV === "production";
 
   console.log(`Environment: ${process.env.NODE_ENV || 'undefined'}`);
   console.log(`Is Production: ${isProduction}`);
@@ -50,7 +50,7 @@ async function startServer() {
       console.log('Vite middleware attached.');
     } catch (err) {
       console.error('Failed to start Vite:', err);
-      // Fallback to dist if Vite fails
+      // Fallback to dist if Vite fails and it exists
       if (fs.existsSync(distPath)) {
         console.log('Falling back to dist/ after Vite failure...');
         app.use(express.static(distPath));

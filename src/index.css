@@ -120,29 +120,24 @@ body {
     min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    display: block !important;
+    position: static !important;
   }
   
-  nav, footer, .lg\:col-span-5, .no-print, .ai-aura-bg, .digital-grid, button {
+  nav, footer, .lg\:col-span-5, .no-print, .ai-aura-bg, .digital-grid, button, [class*="fixed"] {
     display: none !important;
   }
   
-  main {
+  main, .grid, .lg\:col-span-7 {
+    display: block !important;
     position: static !important;
     overflow: visible !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
-    display: block !important;
-  }
-
-  .lg\:col-span-7 {
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    display: block !important;
-    position: static !important;
-    overflow: visible !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
   .print-container {
@@ -156,6 +151,8 @@ body {
     overflow: visible !important;
     display: block !important;
     position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
   .prose {
