@@ -28,6 +28,8 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+// @ts-ignore
+import html2pdf from "html2pdf.js";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
@@ -636,8 +638,30 @@ export default function App() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handleExportPDF = async () => {
+    const element = document.getElementById('pdf-report-container');
+    if (!element) return;
+
+    // Apply specific classes for PDF styling before generating
+    element.classList.add('pdf-theme-light');
+
+    const opt = {
+      margin:       10,
+      filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    try {
+      // @ts-ignore
+      await html2pdf().set(opt).from(element).save();
+    } catch (err) {
+      console.error("Error generating PDF", err);
+    } finally {
+      // Remove the styling class after PDF is generated
+      element.classList.remove('pdf-theme-light');
+    }
   };
 
   return (
@@ -1058,7 +1082,7 @@ export default function App() {
                             </div>
                           )}
                           <button 
-                            onClick={handlePrint}
+                            onClick={handleExportPDF}
                             className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group glow-border"
                           >
                             <Printer className="w-4 h-4 text-brand-cyan group-hover:scale-110 transition-transform" />

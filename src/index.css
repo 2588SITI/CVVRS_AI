@@ -267,3 +267,49 @@ body {
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 242, 255, 0.4);
 }
+
+/* Specific styling for html2pdf direct export */
+.pdf-theme-light {
+  background: white !important;
+  color: black !important;
+  padding: 30px !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+.pdf-theme-light .prose {
+  color: black !important;
+  max-width: none !important;
+}
+
+.pdf-theme-light .prose h1,
+.pdf-theme-light .prose h2,
+.pdf-theme-light .prose h3,
+.pdf-theme-light .prose p,
+.pdf-theme-light .prose li,
+.pdf-theme-light .prose strong,
+.pdf-theme-light .prose em,
+.pdf-theme-light .prose span {
+  color: black !important;
+}
+
+.pdf-theme-light table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+}
+
+.pdf-theme-light th,
+.pdf-theme-light td {
+  border: 1px solid black !important;
+  padding: 6px !important;
+  color: black !important;
+}
+
+.pdf-theme-light th {
+  background-color: #f0f0f0 !important;
+  font-weight: bold !important;
+}
+
+.pdf-theme-light img {
+  max-width: 100% !important;
+}
