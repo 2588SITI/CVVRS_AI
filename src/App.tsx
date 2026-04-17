@@ -28,15 +28,13 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-// @ts-ignore
-import html2pdf from "html2pdf.js";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ErrorBoundary } from "@/src/components/ErrorBoundary";
 import { handleFirestoreError, OperationType } from "./lib/firestoreUtils";
 
 function cn(...inputs: ClassValue[]) {
@@ -652,19 +650,30 @@ export default function App() {
       const opt = {
         margin:       10,
         filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
+        image:        { type: 'jpeg', quality: 1 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // @ts-ignore
-      const html2pdfBuilder = (typeof html2pdf === 'function') ? html2pdf : html2pdf.default;
-      await html2pdfBuilder().set(opt).from(element).save();
-    } catch (err) {
+      // Load html2pdf from CDN dynamically to avoid bundler issues
+      let html2pdfFunc = (window as any).html2pdf;
+      if (!html2pdfFunc) {
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+          script.onload = () => {
+            html2pdfFunc = (window as any).html2pdf;
+            resolve(true);
+          };
+          script.onerror = () => reject(new Error('Failed to load html2pdf from CDN'));
+          document.head.appendChild(script);
+        });
+      }
+
+      await html2pdfFunc().set(opt).from(element).save();
+    } catch (err: any) {
       console.error("Error generating PDF:", err);
-      // Fallback to window.print if PDF generation completely fails, though requested not to. 
-      // Better to just show error.
-      alert("Failed to export PDF directly. Please try again.");
+      alert(`Failed to export PDF: ${err.message || "Unknown error occurred"}`);
     } finally {
       // Remove the styling class after PDF is generated
       element.classList.remove('pdf-theme-light');
