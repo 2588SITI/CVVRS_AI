@@ -205,6 +205,7 @@ export default function App() {
     return "";
   });
   const [showSettings, setShowSettings] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -642,25 +643,34 @@ export default function App() {
     const element = document.getElementById('pdf-report-container');
     if (!element) return;
 
-    // Apply specific classes for PDF styling before generating
-    element.classList.add('pdf-theme-light');
-
-    const opt = {
-      margin:       10,
-      filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    setIsExporting(true);
 
     try {
-      // @ts-ignore
+      // Apply specific classes for PDF styling before generating
+      element.classList.add('pdf-theme-light');
+
+      const opt = {
+        margin:       10,
+        filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      // Dynamically import to prevent Vite SSR/initialization issues
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
+
       await html2pdf().set(opt).from(element).save();
     } catch (err) {
-      console.error("Error generating PDF", err);
+      console.error("Error generating PDF:", err);
+      // Fallback to window.print if PDF generation completely fails, though requested not to. 
+      // Better to just show error.
+      alert("Failed to export PDF directly. Please try again.");
     } finally {
       // Remove the styling class after PDF is generated
       element.classList.remove('pdf-theme-light');
+      setIsExporting(false);
     }
   };
 
@@ -1083,10 +1093,20 @@ export default function App() {
                           )}
                           <button 
                             onClick={handleExportPDF}
-                            className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group glow-border"
+                            disabled={isExporting}
+                            className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest group ${isExporting ? 'bg-brand-cyan/20 border-brand-cyan/40 text-brand-cyan cursor-wait' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white glow-border'}`}
                           >
-                            <Printer className="w-4 h-4 text-brand-cyan group-hover:scale-110 transition-transform" />
-                            Export PDF
+                            {isExporting ? (
+                              <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Exporting PDF...
+                              </>
+                            ) : (
+                              <>
+                                <Printer className="w-4 h-4 text-brand-cyan group-hover:scale-110 transition-transform" />
+                                Export PDF
+                              </>
+                            )}
                           </button>
                         </div>
                       </div>
