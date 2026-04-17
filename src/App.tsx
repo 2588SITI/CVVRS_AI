@@ -1073,14 +1073,14 @@ export default function App() {
                             <Markdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
-                                li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
-                                td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
-                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
-                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
-                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
+                                p: ({ children }) => <p className="mb-4 print:mb-1">{renderContentWithFrames(children)}</p>,
+                                li: ({ children }) => <li className="mb-2 print:mb-0.5">{renderContentWithFrames(children)}</li>,
+                                td: ({ children }) => <td className="p-3 border border-white/10 print:p-1 print:border-black/20">{renderContentWithFrames(children)}</td>,
+                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 print:mb-2">{renderContentWithFrames(children)}</h1>,
+                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3 print:mb-1.5">{renderContentWithFrames(children)}</h2>,
+                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2 print:mb-1">{renderContentWithFrames(children)}</h3>,
                                 code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
-                                strong: ({ children }) => <strong className="font-bold text-white">{renderContentWithFrames(children)}</strong>,
+                                strong: ({ children }) => <strong className="font-bold text-white print:text-black">{renderContentWithFrames(children)}</strong>,
                                 em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
                               }}
                             >
@@ -1149,7 +1149,7 @@ export default function App() {
             </AnimatePresence>
 
             {/* Past Global Corrections Section */}
-            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta">
+            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta no-print">
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-magenta/10 blur-3xl rounded-full -ml-24 -mb-24" />
               
               <div className="flex items-center justify-between px-2 relative">
