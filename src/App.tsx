@@ -638,16 +638,15 @@ export default function App() {
   };
 
   const handleExportPDF = async () => {
-    // To fix oklab errors from html2canvas + Tailwind v4, we'll create a completely clean 
-    // detached element without any Tailwind classes to render the PDF.
-    const sourceMarkdownRaw = report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "");
-    if (!sourceMarkdownRaw) return;
+    const container = document.getElementById('pdf-report-container');
+    const proseElement = container?.querySelector('.prose');
+    if (!proseElement) return;
 
     setIsExporting(true);
 
     try {
       const opt = {
-        margin:       10,
+        margin:       15,
         filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
         image:        { type: 'jpeg', quality: 1 },
         html2canvas:  { scale: 2, useCORS: true, logging: false },
@@ -669,56 +668,67 @@ export default function App() {
         });
       }
 
-      // We clone the existing DOM element but strip all classes
-      // This guarantees no oklab values break html2canvas
-      const originalContainer = document.getElementById('pdf-report-container');
-      if (!originalContainer) throw new Error("Could not find report container.");
-      
-      const cleanClone = originalContainer.cloneNode(true) as HTMLElement;
-      
-      // Recursively remove all class attributes to nuke Tailwind
-      const allElements = cleanClone.getElementsByTagName('*');
-      for (let i = 0; i < allElements.length; i++) {
-        allElements[i].removeAttribute('class');
-      }
-      cleanClone.removeAttribute('class');
+      // We use the raw rendered HTML of the report. Passing a string to html2pdf 
+      // completely bypasses all Tailwind oklab bugs and "blank page" issues caused by off-screen DOM cloning.
+      const contentHtml = proseElement.innerHTML;
 
-      // Create a totally isolated container for the clean clone
-      const pdfContainer = document.createElement('div');
-      pdfContainer.style.position = 'absolute';
-      pdfContainer.style.left = '-9999px';
-      pdfContainer.style.top = '0';
-      pdfContainer.style.width = '800px';
-      pdfContainer.style.backgroundColor = '#ffffff';
-      pdfContainer.style.padding = '40px';
-      pdfContainer.style.fontFamily = 'Arial, sans-serif';
-      pdfContainer.style.color = '#333333';
-      
-      // Inject standard styles for the plain HTML elements
-      pdfContainer.innerHTML = `
-        <style>
-          .pdf-wrapper h1 { font-size: 26px; color: #111827; margin: 24px 0 16px 0; font-weight: 900; }
-          .pdf-wrapper h2 { font-size: 20px; color: #111827; margin: 20px 0 12px 0; font-weight: 800; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
-          .pdf-wrapper h3 { font-size: 16px; color: #1f2937; margin: 16px 0 8px 0; font-weight: 700; }
-          .pdf-wrapper p { font-size: 13px; color: #374151; margin-bottom: 12px; line-height: 1.6; }
-          .pdf-wrapper li { font-size: 13px; color: #374151; margin-bottom: 8px; line-height: 1.6; }
-          .pdf-wrapper strong { font-weight: bold; color: #111827; }
-          .pdf-wrapper em { font-style: italic; }
-          .pdf-wrapper table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
-          .pdf-wrapper th, .pdf-wrapper td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-          .pdf-wrapper th { font-weight: bold; color: #111827; border-bottom: 2px solid #e5e7eb; }
-          .pdf-wrapper code { background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
-        </style>
-        <div class="pdf-wrapper">
-          ${cleanClone.innerHTML}
-        </div>
+      const htmlString = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; background: white; margin: 0; padding: 10px; }
+              .pdf-header { display: flex; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px; }
+              .pdf-icon { background: #ecfeff; border: 1px solid #cffafe; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; margin-right: 20px; }
+              .pdf-icon svg { width: 24px; height: 24px; color: #06b6d4; }
+              .pdf-title { margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -1px; color: #1f2937; line-height: 1.2; }
+              .pdf-subtitle { margin: 4px 0 0 0; font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 3px; color: #6b7280; }
+              
+              /* Markdown Styling */
+              .pdf-body h1 { font-size: 22px; color: #111827; margin: 30px 0 15px 0; font-weight: 800; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+              .pdf-body h2 { font-size: 18px; color: #111827; margin: 25px 0 12px 0; font-weight: 700; }
+              .pdf-body h3 { font-size: 14px; color: #374151; margin: 15px 0 8px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+              .pdf-body p { font-size: 12px; color: #4b5563; margin: 0 0 12px 0; line-height: 1.6; }
+              .pdf-body ul, .pdf-body ol { margin: 0 0 15px 0; padding-left: 20px; }
+              .pdf-body li { font-size: 12px; color: #4b5563; margin-bottom: 6px; line-height: 1.6; }
+              .pdf-body strong { font-weight: 700; color: #111827; }
+              .pdf-body em { font-style: italic; }
+              
+              /* Table Styling */
+              .pdf-body table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 11px; page-break-inside: avoid; }
+              .pdf-body th, .pdf-body td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+              .pdf-body th { background-color: #f9fafb; font-weight: 700; color: #111827; border-bottom: 2px solid #d1d5db; }
+              .pdf-body td { color: #4b5563; }
+              .pdf-body tr { page-break-inside: avoid; }
+              
+              .pdf-body code { background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #ef4444; }
+              
+              .pdf-footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; font-style: italic; }
+            </style>
+          </head>
+          <body>
+            <div class="pdf-header">
+              <div class="pdf-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
+              </div>
+              <div>
+                <h1 class="pdf-title">Intelligence Report</h1>
+                <p class="pdf-subtitle">Neural Analysis Complete</p>
+              </div>
+            </div>
+            
+            <div class="pdf-body">
+              ${contentHtml}
+            </div>
+            
+            <div class="pdf-footer">
+              Neural Safety Division • Western Railway • Report Gen: ${new Date().toLocaleDateString()}
+            </div>
+          </body>
+        </html>
       `;
 
-      document.body.appendChild(pdfContainer);
-
-      await html2pdfFunc().set(opt).from(pdfContainer).save();
-      
-      document.body.removeChild(pdfContainer);
+      await html2pdfFunc().set(opt).from(htmlString).save();
     } catch (err: any) {
       console.error("Error generating PDF:", err);
       alert(`Failed to export PDF: ${err.message || "Unknown error occurred"}`);
