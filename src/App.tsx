@@ -638,15 +638,14 @@ export default function App() {
   };
 
   const handleExportPDF = async () => {
-    const element = document.getElementById('pdf-report-container');
-    if (!element) return;
+    // To fix oklab errors from html2canvas + Tailwind v4, we'll create a completely clean 
+    // detached element without any Tailwind classes to render the PDF.
+    const sourceMarkdownRaw = report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "");
+    if (!sourceMarkdownRaw) return;
 
     setIsExporting(true);
 
     try {
-      // Apply specific classes for PDF styling before generating
-      element.classList.add('pdf-theme-light');
-
       const opt = {
         margin:       10,
         filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
@@ -655,7 +654,7 @@ export default function App() {
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // Load html2pdf from CDN dynamically to avoid bundler issues
+      // Load html2pdf from CDN dynamically
       let html2pdfFunc = (window as any).html2pdf;
       if (!html2pdfFunc) {
         await new Promise((resolve, reject) => {
@@ -670,13 +669,60 @@ export default function App() {
         });
       }
 
-      await html2pdfFunc().set(opt).from(element).save();
+      // We clone the existing DOM element but strip all classes
+      // This guarantees no oklab values break html2canvas
+      const originalContainer = document.getElementById('pdf-report-container');
+      if (!originalContainer) throw new Error("Could not find report container.");
+      
+      const cleanClone = originalContainer.cloneNode(true) as HTMLElement;
+      
+      // Recursively remove all class attributes to nuke Tailwind
+      const allElements = cleanClone.getElementsByTagName('*');
+      for (let i = 0; i < allElements.length; i++) {
+        allElements[i].removeAttribute('class');
+      }
+      cleanClone.removeAttribute('class');
+
+      // Create a totally isolated container for the clean clone
+      const pdfContainer = document.createElement('div');
+      pdfContainer.style.position = 'absolute';
+      pdfContainer.style.left = '-9999px';
+      pdfContainer.style.top = '0';
+      pdfContainer.style.width = '800px';
+      pdfContainer.style.backgroundColor = '#ffffff';
+      pdfContainer.style.padding = '40px';
+      pdfContainer.style.fontFamily = 'Arial, sans-serif';
+      pdfContainer.style.color = '#333333';
+      
+      // Inject standard styles for the plain HTML elements
+      pdfContainer.innerHTML = `
+        <style>
+          .pdf-wrapper h1 { font-size: 26px; color: #111827; margin: 24px 0 16px 0; font-weight: 900; }
+          .pdf-wrapper h2 { font-size: 20px; color: #111827; margin: 20px 0 12px 0; font-weight: 800; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+          .pdf-wrapper h3 { font-size: 16px; color: #1f2937; margin: 16px 0 8px 0; font-weight: 700; }
+          .pdf-wrapper p { font-size: 13px; color: #374151; margin-bottom: 12px; line-height: 1.6; }
+          .pdf-wrapper li { font-size: 13px; color: #374151; margin-bottom: 8px; line-height: 1.6; }
+          .pdf-wrapper strong { font-weight: bold; color: #111827; }
+          .pdf-wrapper em { font-style: italic; }
+          .pdf-wrapper table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px; }
+          .pdf-wrapper th, .pdf-wrapper td { padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+          .pdf-wrapper th { font-weight: bold; color: #111827; border-bottom: 2px solid #e5e7eb; }
+          .pdf-wrapper code { background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-family: monospace; }
+        </style>
+        <div class="pdf-wrapper">
+          ${cleanClone.innerHTML}
+        </div>
+      `;
+
+      document.body.appendChild(pdfContainer);
+
+      await html2pdfFunc().set(opt).from(pdfContainer).save();
+      
+      document.body.removeChild(pdfContainer);
     } catch (err: any) {
       console.error("Error generating PDF:", err);
       alert(`Failed to export PDF: ${err.message || "Unknown error occurred"}`);
     } finally {
-      // Remove the styling class after PDF is generated
-      element.classList.remove('pdf-theme-light');
       setIsExporting(false);
     }
   };
