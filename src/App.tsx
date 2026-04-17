@@ -78,8 +78,12 @@ The final output must be a structured report with the following elements in this
 1. Heading: CVVRS Intelligence Analysis Report
 
 2. Subheadings:
-   - Locomotive ID: [Detected ID]
-   - Date of Recording: [Detected Date]
+   - Locomotive ID: [Detected ID or from context]
+   - Date of Recording: [Detected Date or from context]
+   - Train No: [From context if provided]
+   - LP Name & HQ: [From context if provided]
+   - ALP Name & HQ: [From context if provided]
+   - Analyzer CLI Name: [From context if provided]
    - Observation Period: [Start Time] to [End Time]
 
 3. Detailed Analysis:
@@ -175,6 +179,10 @@ export default function App() {
   const [userDeviationReport, setUserDeviationReport] = useState("");
   const [manualLocoNo, setManualLocoNo] = useState("");
   const [manualDateTime, setManualDateTime] = useState("");
+  const [trainNo, setTrainNo] = useState("");
+  const [lpNameHQ, setLpNameHQ] = useState("");
+  const [alpNameHQ, setAlpNameHQ] = useState("");
+  const [analyzerCliName, setAnalyzerCliName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const [loadingMode, setLoadingMode] = useState<'extracting' | 'analyzing'>('extracting');
@@ -555,12 +563,16 @@ export default function App() {
       }, 2000);
       const locoContext = manualLocoNo ? `\nIMPORTANT: The Locomotive ID for this analysis is: ${manualLocoNo}. Please use this ID in the report header.` : "";
       const dateContext = manualDateTime ? `\nIMPORTANT: The Date/Time of Recording for this analysis is: ${manualDateTime}. Please use this in the report header.` : "";
+      const trainContext = trainNo ? `\nIMPORTANT: The Train No. is: ${trainNo}. Include this in the subheadings.` : "";
+      const lpContext = lpNameHQ ? `\nIMPORTANT: LP Name & HQ is: ${lpNameHQ}. Include this in the subheadings.` : "";
+      const alpContext = alpNameHQ ? `\nIMPORTANT: ALP Name & HQ is: ${alpNameHQ}. Include this in the subheadings.` : "";
+      const analyzerContext = analyzerCliName ? `\nIMPORTANT: Analyzer CLI Name is: ${analyzerCliName}. Include this in the subheadings.` : "";
       
       const learningContext = pastCorrections.length > 0 
         ? `\nPAST GLOBAL CORRECTIONS (Learn from these mistakes across all users): ${pastCorrections.map(c => `[Context: ${c.context}] -> Correction: ${c.correction}`).join('; ')}`
         : "";
 
-      const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
+      const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
       const response = await generateContentWithRetry(ai, {
         model: "gemini-3-flash-preview",
@@ -818,6 +830,58 @@ export default function App() {
                       value={manualDateTime}
                       onChange={(e) => setManualDateTime(e.target.value)}
                       placeholder="e.g. 28/03/2026 10:00"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 ml-1 flex items-center gap-2">
+                      <Train className="w-3 h-3 text-brand-cyan" />
+                      Train No (Optional)
+                    </label>
+                    <input 
+                      type="text"
+                      value={trainNo}
+                      onChange={(e) => setTrainNo(e.target.value)}
+                      placeholder="e.g. 12951"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 ml-1 flex items-center gap-2">
+                      <CheckCircle2 className="w-3 h-3 text-brand-cyan" />
+                      Analyzer CLI Name
+                    </label>
+                    <input 
+                      type="text"
+                      value={analyzerCliName}
+                      onChange={(e) => setAnalyzerCliName(e.target.value)}
+                      placeholder="e.g. CLI R. Kumar"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 ml-1 flex items-center gap-2">
+                      <Database className="w-3 h-3 text-brand-cyan" />
+                      LP Name & HQ
+                    </label>
+                    <input 
+                      type="text"
+                      value={lpNameHQ}
+                      onChange={(e) => setLpNameHQ(e.target.value)}
+                      placeholder="e.g. Mukesh Kumar / BRC"
+                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/60 ml-1 flex items-center gap-2">
+                      <Database className="w-3 h-3 text-brand-cyan" />
+                      ALP Name & HQ
+                    </label>
+                    <input 
+                      type="text"
+                      value={alpNameHQ}
+                      onChange={(e) => setAlpNameHQ(e.target.value)}
+                      placeholder="e.g. Rahul Sharma / BRC"
                       className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-brand-cyan/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm placeholder:text-white/50 font-medium"
                     />
                   </div>
