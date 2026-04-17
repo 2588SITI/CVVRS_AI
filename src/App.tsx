@@ -657,11 +657,9 @@ export default function App() {
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // Dynamically import to prevent Vite SSR/initialization issues
-      const html2pdfModule = await import('html2pdf.js');
-      const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
-
-      await html2pdf().set(opt).from(element).save();
+      // @ts-ignore
+      const html2pdfBuilder = (typeof html2pdf === 'function') ? html2pdf : html2pdf.default;
+      await html2pdfBuilder().set(opt).from(element).save();
     } catch (err) {
       console.error("Error generating PDF:", err);
       // Fallback to window.print if PDF generation completely fails, though requested not to. 
