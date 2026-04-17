@@ -1112,7 +1112,25 @@ export default function App() {
                       </div>
 
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
-                        <div id="pdf-report-container" className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
+                        <div id="pdf-report-container" className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container relative">
+                          
+                          {/* Export-Only Header - Hidden in browser, shown in PDF export */}
+                          <div className="pdf-only-element hidden mb-10 border-b border-black/20 pb-6">
+                            <div className="flex items-center gap-6">
+                              <div className="w-16 h-16 bg-cyan-50 rounded-full flex items-center justify-center border border-cyan-100">
+                                <FileText className="w-8 h-8 text-cyan-500" />
+                              </div>
+                              <div>
+                                <h1 className="text-3xl font-black italic tracking-tighter uppercase text-slate-800 m-0">
+                                  Intelligence Report
+                                </h1>
+                                <p className="text-xs text-slate-400 uppercase tracking-[0.4em] font-bold m-0 mt-2">
+                                  Neural Analysis Complete
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
                             <Markdown 
                               remarkPlugins={[remarkGfm]}
