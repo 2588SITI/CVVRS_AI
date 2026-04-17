@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
-// Force Vite update
 interface Props {
   children: ReactNode;
 }

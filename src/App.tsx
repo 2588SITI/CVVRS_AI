@@ -34,7 +34,7 @@ import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { ErrorBoundary } from "@/src/components/ErrorBoundary";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { handleFirestoreError, OperationType } from "./lib/firestoreUtils";
 
 function cn(...inputs: ClassValue[]) {
@@ -49,14 +49,9 @@ Act as an expert Video Analyst for Indian Railways, specializing in the monitori
 Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
-A. Activity Analysis - Running Condition & Multimodal State Detection
-CRITICAL MOTION & PRESENCE DETECTION RULE: You must act as a Multimodal AI Monitoring System combining visual data and functional instrument statuses. 
-To confirm "Running/Active Condition", verify the following Operational State and Presence cues:
-1. Speedometers: Check the digital DDU speedometer AND the analog speedometer on the energy meter. If either is > 0 km/h, the loco is running.
-2. Master Controller & Notch Position: If the Master Controller is NOT at "0" or "Off", the loco is classified as "active/running".
-3. Instrument Panel Status: Check for illumination of panel lamps (e.g., green indicator lamps) and monitor Brake Pressure Gauges.
-4. Active Driver Detection (Vision AI): Visually verify the presence of a human sitting in the driver's seat. Monitor physical actions such as hands on the controller, scanning panels, or interacting with the "dead man's switch" (Vigilance Control Device/VCD) to confirm the driver is active, not incapacitated or absent.
-If running/active conditions are met, check the following. (NOTE: LP AND ALP WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER - REPORT ONLY THIS DRESS CODE STAFF. BUT IN WINTER THEY MAY WEAR JACKETS).
+A. Activity Analysis - Running Condition
+Detect "Running Condition" by observing relative motion between the locomotive and the surrounding environment/fixtures.
+When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 1. Signal Calling: Is the crew calling out signal aspects with the proper confirmed hand gesture?
 2. Alertness: Is the crew visibly alert?
 3. Nap/Micro-Sleep: Is the crew taking a nap or showing signs of micro-sleep?
@@ -70,7 +65,7 @@ If running/active conditions are met, check the following. (NOTE: LP AND ALP WEA
 11. Leaving Seat: Is the crew leaving their designated place for other activities?
 
 B. Activity Analysis - Stationary Condition
-CRITICAL MOTION DETECTION RULE: Detect "Stationary Condition" primarily by reading the Speedometers (digital on the desk or analog on the energy meter). If the speed indicated is exactly 0 km/h, the train is in "Stationary Condition".
+Detect "Stationary Condition" by the lack of relative motion between the locomotive and the surrounding environment.
 When the train is stopped, check the following:
 1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
 2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
@@ -203,7 +198,6 @@ export default function App() {
     return "";
   });
   const [showSettings, setShowSettings] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -637,104 +631,8 @@ export default function App() {
     }
   };
 
-  const handleExportPDF = async () => {
-    const container = document.getElementById('pdf-report-container');
-    const proseElement = container?.querySelector('.prose');
-    if (!proseElement) return;
-
-    setIsExporting(true);
-
-    try {
-      const opt = {
-        margin:       15,
-        filename:     `CVVRS_Intelligence_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-        image:        { type: 'jpeg', quality: 1 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-
-      // Load html2pdf from CDN dynamically
-      let html2pdfFunc = (window as any).html2pdf;
-      if (!html2pdfFunc) {
-        await new Promise((resolve, reject) => {
-          const script = document.createElement('script');
-          script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
-          script.onload = () => {
-            html2pdfFunc = (window as any).html2pdf;
-            resolve(true);
-          };
-          script.onerror = () => reject(new Error('Failed to load html2pdf from CDN'));
-          document.head.appendChild(script);
-        });
-      }
-
-      // We use the raw rendered HTML of the report. Passing a string to html2pdf 
-      // completely bypasses all Tailwind oklab bugs and "blank page" issues caused by off-screen DOM cloning.
-      const contentHtml = proseElement.innerHTML;
-
-      const htmlString = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827; background: white; margin: 0; padding: 10px; }
-              .pdf-header { display: flex; align-items: center; border-bottom: 2px solid #e5e7eb; padding-bottom: 20px; margin-bottom: 30px; }
-              .pdf-icon { background: #ecfeff; border: 1px solid #cffafe; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; margin-right: 20px; }
-              .pdf-icon svg { width: 24px; height: 24px; color: #06b6d4; }
-              .pdf-title { margin: 0; font-size: 24px; font-weight: 900; text-transform: uppercase; font-style: italic; letter-spacing: -1px; color: #1f2937; line-height: 1.2; }
-              .pdf-subtitle { margin: 4px 0 0 0; font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: 3px; color: #6b7280; }
-              
-              /* Markdown Styling */
-              .pdf-body h1 { font-size: 22px; color: #111827; margin: 30px 0 15px 0; font-weight: 800; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-              .pdf-body h2 { font-size: 18px; color: #111827; margin: 25px 0 12px 0; font-weight: 700; }
-              .pdf-body h3 { font-size: 14px; color: #374151; margin: 15px 0 8px 0; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
-              .pdf-body p { font-size: 12px; color: #4b5563; margin: 0 0 12px 0; line-height: 1.6; }
-              .pdf-body ul, .pdf-body ol { margin: 0 0 15px 0; padding-left: 20px; }
-              .pdf-body li { font-size: 12px; color: #4b5563; margin-bottom: 6px; line-height: 1.6; }
-              .pdf-body strong { font-weight: 700; color: #111827; }
-              .pdf-body em { font-style: italic; }
-              
-              /* Table Styling */
-              .pdf-body table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 11px; page-break-inside: avoid; }
-              .pdf-body th, .pdf-body td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-              .pdf-body th { background-color: #f9fafb; font-weight: 700; color: #111827; border-bottom: 2px solid #d1d5db; }
-              .pdf-body td { color: #4b5563; }
-              .pdf-body tr { page-break-inside: avoid; }
-              
-              .pdf-body code { background-color: #f3f4f6; padding: 2px 4px; border-radius: 4px; font-family: monospace; font-size: 11px; color: #ef4444; }
-              
-              .pdf-footer { margin-top: 40px; padding-top: 15px; border-top: 1px solid #e5e7eb; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #9ca3af; font-style: italic; }
-            </style>
-          </head>
-          <body>
-            <div class="pdf-header">
-              <div class="pdf-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-              </div>
-              <div>
-                <h1 class="pdf-title">Intelligence Report</h1>
-                <p class="pdf-subtitle">Neural Analysis Complete</p>
-              </div>
-            </div>
-            
-            <div class="pdf-body">
-              ${contentHtml}
-            </div>
-            
-            <div class="pdf-footer">
-              Neural Safety Division • Western Railway • Report Gen: ${new Date().toLocaleDateString()}
-            </div>
-          </body>
-        </html>
-      `;
-
-      await html2pdfFunc().set(opt).from(htmlString).save();
-    } catch (err: any) {
-      console.error("Error generating PDF:", err);
-      alert(`Failed to export PDF: ${err.message || "Unknown error occurred"}`);
-    } finally {
-      setIsExporting(false);
-    }
+  const handlePrint = () => {
+    window.print();
   };
 
   return (
@@ -1155,57 +1053,29 @@ export default function App() {
                             </div>
                           )}
                           <button 
-                            onClick={handleExportPDF}
-                            disabled={isExporting}
-                            className={`flex items-center gap-2.5 px-6 py-3 rounded-2xl border transition-all text-[10px] font-black uppercase tracking-widest group ${isExporting ? 'bg-brand-cyan/20 border-brand-cyan/40 text-brand-cyan cursor-wait' : 'bg-white/5 border-white/10 hover:bg-white/10 text-white glow-border'}`}
+                            onClick={handlePrint}
+                            className="flex items-center gap-2.5 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all text-[10px] font-black uppercase tracking-widest group glow-border"
                           >
-                            {isExporting ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                Exporting PDF...
-                              </>
-                            ) : (
-                              <>
-                                <Printer className="w-4 h-4 text-brand-cyan group-hover:scale-110 transition-transform" />
-                                Export PDF
-                              </>
-                            )}
+                            <Printer className="w-4 h-4 text-brand-cyan group-hover:scale-110 transition-transform" />
+                            Export PDF
                           </button>
                         </div>
                       </div>
 
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
-                        <div id="pdf-report-container" className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container relative">
-                          
-                          {/* Export-Only Header - Hidden in browser, shown in PDF export */}
-                          <div className="pdf-only-element hidden mb-10 border-b border-black/20 pb-6">
-                            <div className="flex items-center gap-6">
-                              <div className="w-16 h-16 bg-cyan-50 rounded-full flex items-center justify-center border border-cyan-100">
-                                <FileText className="w-8 h-8 text-cyan-500" />
-                              </div>
-                              <div>
-                                <h1 className="text-3xl font-black italic tracking-tighter uppercase text-slate-800 m-0">
-                                  Intelligence Report
-                                </h1>
-                                <p className="text-xs text-slate-400 uppercase tracking-[0.4em] font-bold m-0 mt-2">
-                                  Neural Analysis Complete
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
+                        <div id="pdf-report-container" className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
                             <Markdown 
                               remarkPlugins={[remarkGfm]}
                               components={{
-                                p: ({ children }) => <p className="mb-4 print:mb-1">{renderContentWithFrames(children)}</p>,
-                                li: ({ children }) => <li className="mb-2 print:mb-0.5">{renderContentWithFrames(children)}</li>,
-                                td: ({ children }) => <td className="p-3 border border-white/10 print:p-1 print:border-black/20">{renderContentWithFrames(children)}</td>,
-                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4 print:mb-2">{renderContentWithFrames(children)}</h1>,
-                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3 print:mb-1.5">{renderContentWithFrames(children)}</h2>,
-                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2 print:mb-1">{renderContentWithFrames(children)}</h3>,
+                                p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
+                                li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
+                                td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
+                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
+                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
+                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
                                 code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
-                                strong: ({ children }) => <strong className="font-bold text-white print:text-black">{renderContentWithFrames(children)}</strong>,
+                                strong: ({ children }) => <strong className="font-bold text-white">{renderContentWithFrames(children)}</strong>,
                                 em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
                               }}
                             >
@@ -1274,7 +1144,7 @@ export default function App() {
             </AnimatePresence>
 
             {/* Past Global Corrections Section */}
-            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta no-print">
+            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta">
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-magenta/10 blur-3xl rounded-full -ml-24 -mb-24" />
               
               <div className="flex items-center justify-between px-2 relative">
