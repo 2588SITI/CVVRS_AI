@@ -24,11 +24,7 @@ async function startServer() {
   console.log(`Is Production: ${isProduction}`);
   console.log(`Dist Path exists: ${fs.existsSync(distPath)}`);
 
-  // Simple request logger
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
-    next();
-  });
+
 
   if (isProduction) {
     // Production: Serve static files from dist/

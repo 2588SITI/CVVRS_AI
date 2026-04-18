@@ -36,6 +36,8 @@ import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/
 import { onAuthStateChanged, User } from "firebase/auth";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { handleFirestoreError, OperationType } from "./lib/firestoreUtils";
+import { FFmpeg } from "@ffmpeg/ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -50,9 +52,14 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" by observing relative motion between the locomotive and the surrounding environment/fixtures.
+Detect "Running Condition" by checking these four critical mechanical and visual indicators on the loco desk:
+1. DDS Speedometer: Look at the Diagnostic Display System (DDS) screen. A white digital needle moving on the circular speedometer gauge indicates speed.
+2. ESMON Speedometer: Check the ESMON (Energy Cum Speed Monitoring) speedometer needle. If it registers a speed above zero, the loco is running.
+3. Throttle (Master Controller) Position: Look at the large vertical handle. If it is pushed forward into the traction/driving zone, the train is running.
+4. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
+If these indicators are active, or if you observe relative motion between the loco window and the outside environment, the train is in running condition.
 When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
-1. Signal Calling: Is the crew calling out signal aspects with the proper confirmed hand gesture?
+1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
 2. Alertness: Is the crew visibly alert?
 3. Nap/Micro-Sleep: Is the crew taking a nap or showing signs of micro-sleep?
 4. Distraction: Is the crew distracted from looking ahead through the lookout glass? (Neglect distractions lasting < 07 seconds).
@@ -65,7 +72,7 @@ When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT
 11. Leaving Seat: Is the crew leaving their designated place for other activities?
 
 B. Activity Analysis - Stationary Condition
-Detect "Stationary Condition" by the lack of relative motion between the locomotive and the surrounding environment.
+Detect "Stationary Condition" by checking that the white digital needle on the DDS speedometer and the ESMON speedometer needle are both at zero, the Throttle (Master Controller) is in the Neutral position, and the Reverser handle is in Neutral. You should also verify this with the lack of relative motion between the locomotive and the outside environment.
 When the train is stopped, check the following:
 1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
 2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
@@ -86,19 +93,31 @@ The final output must be a structured report with the following elements in this
    - Analyzer CLI Name: [From context if provided]
    - Observation Period: [Start Time] to [End Time]
 
-3. Detailed Analysis:
-   - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here FIRST. This is the most important section. If no violations are found, state "No non-compliance detected."
-     CRITICAL: For each individual Non-Compliance Observation, you MUST identify exactly ONE specific frame that best illustrates the violation. At the very end of the description for that specific observation (on a new line), insert the tag [[FRAME_IMAGE:n]] where n is the frame number. Do NOT include more than one photo per observation.
-   - Compliance Observations: List all compliant activities and routine checks here SECOND. Do NOT include frame tags in this section unless explicitly necessary for safety verification.
+3. Chronological Event Log (CRITICAL):
+   Provide a detailed timeline log of all notable interactions observed in the footage. Always extract the real "on-screen" burned-in timestamp for each log.
+   *Example:*
+   - [09:07:44]: ALP raised left hand to call out signal.
+   - [09:12:15]: Loco Pilot seen using control panel.
+   *(List all detected events in strict chronological order)*
 
-4. Compliance Summary & Deviation Table:
+4. Detailed Analysis:
+   - Mandatory Checkpoints: You MUST explicitly state the following points in this section, regardless of whether it's compliant or not:
+     1. Mobile Phone Usage: If they are not talking on a mobile phone, explicitly state "LP & ALP did not use mobile phone". If they did, document the usage.
+     2. Signal Calling: Explicitly state the use of calling out signals with hand gestures or not.
+     3. Standstill Condition: Explicitly state whether the reverser and throttle are in neutral condition or not while the loco is in stand still condition.
+     4. Crew Communication: Explicitly state whether they are talking with each other during the whole journey or not.
+   - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here AFTER the mandatory checkpoints. This is the most important section. If no violations are found, state "No non-compliance detected."
+     CRITICAL: For each individual Non-Compliance Observation, you MUST identify exactly ONE specific frame that best illustrates the violation. At the very end of the description for that specific observation (on a new line), insert the tag [[FRAME_IMAGE:n]] where n is the frame number. Do NOT include more than one photo per observation.
+   - Compliance Observations: List all compliant activities and routine checks here. Do NOT include frame tags in this section unless explicitly necessary for safety verification.
+
+5. Compliance Summary & Deviation Table:
    Provide a markdown table with horizontal and vertical lines (using markdown table syntax). You MUST include pipes (|) at the beginning and end of every row to ensure a proper grid structure. IMPORTANT: Each row MUST be on a new line. Do NOT combine multiple rows into a single line.
    Format:
    | Timestamp (Video Clock) | Timestamp (Video Streaming) | Activity Category | Compliance Status | Deviation Description |
    |:---|:---|:---|:---|:---|
    | [Time] | [Time] | [Category] | [Compliance / Non-Compliance] | [Details] |
 
-5. Disciplinary Summary:
+6. Disciplinary Summary:
    - Corrective Measures: (e.g., Counseling, Refresher Training).
    IMPORTANT: The "Charge Sheet & Punishment" section must be completely removed from the analysis output.
 
@@ -389,6 +408,60 @@ export default function App() {
     }
   };
 
+  const extractFramesWithFFmpeg = async (file: File, intervalSeconds: number = 5): Promise<{ data: string, mimeType: string }[]> => {
+    const ffmpeg = new FFmpeg();
+    
+    ffmpeg.on('log', ({ message }) => {
+      console.log('FFmpeg:', message);
+    });
+
+    ffmpeg.on('progress', ({ progress: prog }) => {
+      setProgress(Math.min(99, Math.round(prog * 100)));
+    });
+
+    try {
+      await ffmpeg.load({
+        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js',
+        wasmURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.wasm',
+      });
+
+      const name = file.name;
+      await ffmpeg.writeFile(name, await fetchFile(file));
+
+      // Extract 1 frame every intervalSeconds, scale down to max 640x480
+      const fps = (1 / intervalSeconds).toFixed(4);
+      await ffmpeg.exec(['-i', name, '-vf', `fps=${fps},scale=640:-1`, '-q:v', '5', 'frame_%03d.jpg']);
+
+      const frames: { data: string, mimeType: string }[] = [];
+      const files = await ffmpeg.listDir('/');
+      
+      const frameFiles = files.filter(f => f.name.startsWith('frame_') && f.name.endsWith('.jpg')).sort((a, b) => a.name.localeCompare(b.name));
+      
+      for (const f of frameFiles) {
+        const fileData = await ffmpeg.readFile(f.name);
+        
+        if (fileData instanceof Uint8Array) {
+           let base64 = "";
+           const chunk = 32768; // Chunk to prevent Maximum call stack size exceeded
+           for (let i = 0; i < fileData.length; i += chunk) {
+              base64 += String.fromCharCode.apply(null, Array.from(fileData.subarray(i, i + chunk)));
+           }
+           frames.push({
+              data: btoa(base64),
+              mimeType: 'image/jpeg',
+           });
+           if (frames.length >= 15) break;
+        }
+      }
+
+      setProgress(100);
+      return frames;
+    } catch (err) {
+      console.error("FFmpeg error:", err);
+      throw err;
+    }
+  };
+
   const extractFrames = async (file: File, intervalSeconds: number = 5): Promise<{ data: string, mimeType: string }[]> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
@@ -464,12 +537,21 @@ export default function App() {
         }
       };
 
-      video.onerror = () => {
+      video.onerror = async () => {
         let errorMsg = video.error ? `${video.error.message} (Code: ${video.error.code})` : "Unknown video error";
         
         // Specific advice for Code 4 (Demuxer error / Unsupported format)
         if (video.error?.code === 4 || errorMsg.includes("DEMUXER_ERROR")) {
-          errorMsg = "The video format is not natively supported by your browser's engine. CVVRS systems often use specialized codecs. Please convert the video to a standard MP4 (H.264) format using a tool like Handbrake or VLC before uploading.";
+          console.log("Native video extraction failed. Attempting FFmpeg fallback...");
+          try {
+             const frames = await extractFramesWithFFmpeg(file, intervalSeconds);
+             cleanup();
+             resolve(frames);
+             return;
+          } catch(ffmpegErr) {
+             console.error("FFmpeg fallback failed:", ffmpegErr);
+             errorMsg = "The video format is not natively supported by your browser's engine, and the alternative FFmpeg extraction also failed. Please convert the video to a standard MP4 (H.264) format using a tool like Handbrake or VLC before uploading.";
+          }
         }
         
         cleanup();
