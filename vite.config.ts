@@ -16,31 +16,25 @@ export default defineConfig(({mode}) => {
       (obfuscator as any)({
         compact: true,
         controlFlowFlattening: true,
-        controlFlowFlatteningThreshold: 1,
-        deadCodeInjection: true,
-        deadCodeInjectionThreshold: 0.4,
-        debugProtection: true,
-        debugProtectionInterval: 4000,
+        controlFlowFlatteningThreshold: 0.5,
+        deadCodeInjection: false, // Disable to avoid overhead/instability
+        debugProtection: false, // Disable to avoid browser interference
         disableConsoleOutput: true,
         identifierNamesGenerator: 'hexadecimal',
         log: false,
         numbersToExpressions: true,
         renameGlobals: false,
-        selfDefending: true,
+        selfDefending: false, // Disable to avoid crashes on formatting
         simplify: true,
         splitStrings: true,
-        splitStringsChunkLength: 5,
+        splitStringsChunkLength: 10,
         stringArray: true,
         stringArrayCallsTransform: true,
-        stringArrayEncoding: ['rc4'],
+        stringArrayEncoding: ['base64'],
         stringArrayIndexShift: true,
         stringArrayRotate: true,
         stringArrayShuffle: true,
-        stringArrayWrappersCount: 2,
-        stringArrayWrappersChainedCalls: true,
-        stringArrayWrappersParametersMaxCount: 4,
-        stringArrayWrappersType: 'function',
-        stringArrayThreshold: 1,
+        stringArrayThreshold: 0.75,
         transformObjectKeys: true,
         unicodeEscapeSequence: false
       })

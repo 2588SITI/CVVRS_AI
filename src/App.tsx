@@ -613,15 +613,15 @@ export default function App() {
       // Check if the entered key is actually the admin password
       // Use process.env directly (defined by Vite build tool)
       const adminPassword = process.env.ADMIN_PASSWORD || "";
-      let apiKey = userApiKey;
+      let apiKey = userApiKey.trim();
 
-      if (adminPassword && userApiKey === adminPassword) {
-        apiKey = process.env.GEMINI_API_KEY || "";
+      if (adminPassword && apiKey === adminPassword.trim()) {
+        apiKey = (process.env.GEMINI_API_KEY || "").trim();
       }
 
-      if (!apiKey) {
+      if (!apiKey || apiKey === "undefined" || apiKey === "null") {
         setShowSettings(true);
-        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password.");
+        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password in the Personal Key field.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
