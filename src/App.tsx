@@ -52,11 +52,14 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" by checking these four critical mechanical and visual indicators on the loco desk:
-1. DDS Speedometer: Look at the Diagnostic Display System (DDS) screen. A white digital needle moving on the circular speedometer gauge indicates speed.
-2. ESMON Speedometer: Check the ESMON (Energy Cum Speed Monitoring) speedometer needle. If it registers a speed above zero, the loco is running.
-3. Throttle (Master Controller) Position: Look at the large vertical handle. If it is pushed forward into the traction/driving zone, the train is running.
-4. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
+Detect "Running Condition" with EXTREME precision. You MUST use intense OPTICAL CHARACTER RECOGNITION (OCR) on the loco desk. If ANY of these five indicators show motion, treat the train as RUNNING:
+1. DDS Speedometer (Digital): Zoom in heavily on the Diagnostic Display System (DDS) monitor. Look for the EXACT numerical digits (km/h) shown on the screen. If the number is > 0, IT IS RUNNING.
+2. ESMON Speedometer (Analog/Digital): Look at the separate ESMON gauge. Read the red LED digit readout inside it. Also verify if the physical needle is lifted above the '0' mark. If the number or needle is above zero, IT IS RUNNING.
+3. Motion Blur outside Lookout Glass: Analyze the tracks, overhead equipment (OHE) masts, or scenery outside the windshield. If there is noticeable motion blur or structural displacement between consecutive frames, IT IS RUNNING.
+4. Throttle (Master Controller) Position: Look at the vertical handle. If pushed forward into the traction zone, IT IS RUNNING.
+5. Reverser Position: If the small horizontal handle below the DDS is pointing forward (not in neutral), IT IS READY/RUNNING.
+CRITICAL OCR COMMAND: DO NOT merely glance at the screens. You MUST actively read the raw digits on the DDS and ESMON. If a number like '45' or '10' is visible, the train is moving.
+
 If these indicators are active, or if you observe relative motion between the loco window and the outside environment, the train is in running condition.
 When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
@@ -657,7 +660,7 @@ export default function App() {
       const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-pro-preview",
         contents: [
           {
             parts: [
@@ -826,6 +829,17 @@ export default function App() {
               <p className="text-white/40 text-lg leading-relaxed font-medium max-w-md">
                 High-speed parallel processing for large-scale locomotive crew monitoring and compliance.
               </p>
+              
+              <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/10 w-max">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,242,255,0.15)] overflow-hidden relative">
+                  <div className="absolute inset-0 bg-brand-cyan/20 animate-pulse-slow" />
+                  <Cpu className="w-4 h-4 text-brand-cyan relative z-10" />
+                </div>
+                <div>
+                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-[0.4em] mb-0.5">Conceptualized & Designed By</p>
+                  <p className="text-sm font-black tracking-[0.2em] uppercase text-brand-cyan glow-text">ADEE TRO BL</p>
+                </div>
+              </div>
             </motion.div>
 
             <motion.div 
