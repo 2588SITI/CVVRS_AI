@@ -1169,7 +1169,7 @@ export default function App() {
                               {(report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : ""))
                                 .replace(
                                   /((?:\*\*|\#|\#\#|\#\#\#)?\s*Non-Compliance Observations?:?.*[\s\S]*?)(?=(?:\*\*|\#|\#\#|\#\#\#)?\s*Compliance Observations?:?.*|5\. Compliance Summary.*|6\. Disciplinary Summary.*|$)/i,
-                                  '<div class="text-red-500 font-semibold print:text-red-600">\n\n$1\n\n</div>'
+                                  '<div class="non-compliance-section">\n\n$1\n\n</div>'
                                 )}
                             </Markdown>
                             
