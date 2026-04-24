@@ -567,7 +567,20 @@ export default function App() {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
       try {
-        const response = await ai.models.generateContent(params);
+        console.log(`Attempt ${i + 1}: Querying ${params.model}...`);
+        const model = ai.getGenerativeModel({ model: params.model });
+        
+        // Add a manual timeout promise
+        const timeoutMs = 120000; // 2 minutes
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Neural Analysis Timed Out (${params.model}). The server took too long to respond. This can happen with large videos or high network latency.`)), timeoutMs)
+        );
+
+        const apiPromise = model.generateContent(params.contents || params);
+        
+        const result = (await Promise.race([apiPromise, timeoutPromise])) as any;
+        const response = await result.response;
+        console.log(`Attempt ${i + 1} Success!`);
         return response;
       } catch (err: any) {
         lastError = err;
@@ -616,14 +629,18 @@ export default function App() {
 
     let progressInterval: any;
     try {
+      console.log("Analysis starting... Checking API keys.");
       // Check if the entered key is actually the admin password
-      // Use process.env directly (defined by Vite build tool)
       const adminPassword = process.env.ADMIN_PASSWORD || "";
+      console.log("Admin password status:", adminPassword ? "Set" : "Not Set");
+      
       let apiKey = userApiKey.trim();
-
       if (adminPassword && apiKey === adminPassword.trim()) {
+        console.log("Admin override detected. Using system key.");
         apiKey = (process.env.GEMINI_API_KEY || "").trim();
       }
+      
+      console.log("Using API Key (first 4):", apiKey ? apiKey.substring(0, 4) + "..." : "NONE");
 
       if (!apiKey || apiKey === "undefined" || apiKey === "null") {
         setShowSettings(true);
@@ -681,7 +698,7 @@ export default function App() {
       try {
         // Primary Attempt: High-Reasoning Pro Model
         response = await generateContentWithRetry(ai, {
-          model: "gemini-3.1-pro-preview",
+          model: "gemini-1.5-pro",
           contents: [
             {
               parts: [
@@ -695,16 +712,18 @@ export default function App() {
           ]
         });
       } catch (proErr: any) {
-        const errMsg = proErr.message || "";
-        const isQuotaError = errMsg.includes("429") || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("rate limit");
+        console.error("Pro Model Error:", proErr);
+        const errMsg = (proErr.message || "").toLowerCase();
+        const isQuotaError = errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("rate limit");
+        const isModelNotFoundError = errMsg.includes("404") || errMsg.includes("not found");
         
-        if (isQuotaError) {
-          console.warn("Pro model quota exceeded. Falling back to Flash model for continuity...");
-          setLoadingStep(loadingSteps.length - 1); // "Retrying..."
+        if (isQuotaError || isModelNotFoundError) {
+          console.warn("Falling back to Flash model...");
+          setLoadingStep(loadingSteps.length - 1); 
           
           // Secondary Attempt: High-Quota Flash Model
           response = await generateContentWithRetry(ai, {
-            model: "gemini-3-flash-preview",
+            model: "gemini-1.5-flash",
             contents: [
               {
                 parts: [
