@@ -428,9 +428,9 @@ export default function App() {
       const name = file.name;
       await ffmpeg.writeFile(name, await fetchFile(file));
 
-      // Extract 1 frame every intervalSeconds, scale down to max 640x480
+      // Extract 1 frame every intervalSeconds, scale down to max 1280
       const fps = (1 / intervalSeconds).toFixed(4);
-      await ffmpeg.exec(['-i', name, '-vf', `fps=${fps},scale=640:-1`, '-q:v', '5', 'frame_%03d.jpg']);
+      await ffmpeg.exec(['-i', name, '-vf', `fps=${fps},scale=1280:-1`, '-q:v', '5', 'frame_%03d.jpg']);
 
       const frames: { data: string, mimeType: string }[] = [];
       const files = await ffmpeg.listDir('/');
@@ -490,8 +490,8 @@ export default function App() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // Scale down for faster processing while maintaining clarity
-          const scale = 0.5;
+          // Maintain original resolution for better AI visibility
+          const scale = 1;
           canvas.width = video.videoWidth * scale;
           canvas.height = video.videoHeight * scale;
 
