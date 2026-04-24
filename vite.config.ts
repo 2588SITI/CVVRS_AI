@@ -12,20 +12,22 @@ export default defineConfig(({mode}) => {
     plugins: [
       react(), 
       tailwindcss(),
-      // Enable obfuscation ONLY in production and with safer settings
-      isProduction && (obfuscator as any)({
+      // Enable obfuscation for all builds to satisfy user security request
+      (obfuscator as any)({
         compact: true,
-        controlFlowFlattening: false, // Too aggressive, can cause runtime issues
-        deadCodeInjection: false,
-        debugProtection: false,
+        controlFlowFlattening: true,
+        controlFlowFlatteningThreshold: 0.5,
+        deadCodeInjection: false, // Disable to avoid overhead/instability
+        debugProtection: false, // Disable to avoid browser interference
         disableConsoleOutput: true,
         identifierNamesGenerator: 'hexadecimal',
         log: false,
-        numbersToExpressions: false, // Can break logic in complex libraries
+        numbersToExpressions: true,
         renameGlobals: false,
-        selfDefending: false,
+        selfDefending: false, // Disable to avoid crashes on formatting
         simplify: true,
-        splitStrings: false, // Breaks dynamic code and regexes
+        splitStrings: true,
+        splitStringsChunkLength: 10,
         stringArray: true,
         stringArrayCallsTransform: true,
         stringArrayEncoding: ['base64'],
@@ -33,7 +35,7 @@ export default defineConfig(({mode}) => {
         stringArrayRotate: true,
         stringArrayShuffle: true,
         stringArrayThreshold: 0.75,
-        transformObjectKeys: false, // CRITICAL: This breaks React and third-party libraries
+        transformObjectKeys: true,
         unicodeEscapeSequence: false
       })
     ].filter(Boolean),
