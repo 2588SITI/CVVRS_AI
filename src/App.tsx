@@ -288,7 +288,7 @@ export default function App() {
     "Analyzing Compliance Standards...",
     "Comparing with G&SR Rulebook...",
     "Generating CVVRS Intelligence Report...",
-    "Deep OCR Scanning (Pro Model) - This may take 30-60s...",
+    "Neural Engine: Gemini 3.1 Pro Preview - Deep OCR Scanning...",
     "Neural Engine Overloaded - Retrying..."
   ];
 
