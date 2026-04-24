@@ -207,6 +207,7 @@ export default function App() {
   const [analyzerCliName, setAnalyzerCliName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [loadingMode, setLoadingMode] = useState<'extracting' | 'analyzing'>('extracting');
   const [progress, setProgress] = useState(0);
   const [pastCorrections, setPastCorrections] = useState<any[]>([]);
@@ -567,7 +568,11 @@ export default function App() {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
       try {
+        if (i > 0) {
+          setRetryStatus(`Retry ${i}/${maxRetries}: Optimizing Neural Path...`);
+        }
         const response = await ai.models.generateContent(params);
+        setRetryStatus(null);
         return response;
       } catch (err: any) {
         lastError = err;
@@ -579,20 +584,24 @@ export default function App() {
 
         if ((isQuota || isOverloaded || isTimeout) && i < maxRetries - 1) {
           // Exponential backoff with jitter
-          // Quota errors (429) need much longer waits
-          const baseDelay = isQuota ? 20000 : 5000;
-          const delay = Math.pow(1.5, i) * baseDelay + Math.random() * 5000;
+          const baseDelay = isQuota ? 15000 : 5000;
+          const delay = Math.pow(1.3, i) * baseDelay + Math.random() * 3000;
+          
+          const waitSecs = Math.round(delay / 1000);
+          setRetryStatus(`Neural Engine ${isQuota ? 'Busy' : 'Overloaded'}. Re-aligning in ${waitSecs}s...`);
           
           console.warn(`Neural Engine issue (${isQuota ? 'Quota' : 'Load'}), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
           
-          setLoadingStep(loadingSteps.length - 1); // "Neural Engine Overloaded - Retrying..."
+          setLoadingStep(loadingSteps.length - 1); 
           
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
+        setRetryStatus(null);
         throw err;
       }
     }
+    setRetryStatus(null);
     throw lastError;
   };
 
@@ -1151,22 +1160,52 @@ export default function App() {
                       </div>
                     </div>
                     <h3 className="text-3xl font-black mt-10 mb-3 tracking-tight">Neural Processing</h3>
-                    <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.4em] h-6">
-                      {loadingSteps[loadingStep]}
+                    <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.4em] h-6 flex items-center justify-center">
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={retryStatus || loadingStep}
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                        >
+                          {retryStatus || loadingSteps[loadingStep]}
+                        </motion.span>
+                      </AnimatePresence>
                     </p>
                     
                     <div className="mt-16 space-y-4 w-full max-w-md mx-auto">
                       <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
                         <span>{loadingMode === 'extracting' ? 'Extraction Progress' : 'Analysis Progress'}</span>
-                        <span>{progress}%</span>
+                        <div className="flex items-center gap-1">
+                          {progress >= 95 && !retryStatus && <div className="w-1 h-1 bg-brand-cyan rounded-full animate-ping" />}
+                          <span>{progress}%</span>
+                        </div>
                       </div>
                       <div className="h-2 bg-white/5 rounded-full overflow-hidden p-0.5">
                         <motion.div 
                           className="h-full bg-cyan-500 rounded-full shadow-[0_0_15px_rgba(0,242,255,0.5)]"
                           initial={{ width: "0%" }}
                           animate={{ width: `${progress}%` }}
+                          transition={progress >= 95 ? { repeat: Infinity, duration: 2, repeatType: "reverse" } : { duration: 0.5 }}
                         />
                       </div>
+                      {progress >= 95 && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="space-y-4"
+                        >
+                           <p className="text-white/30 text-[10px] uppercase tracking-widest italic animate-pulse">
+                            Deep Neural Analysis is intensive. Still processing...
+                          </p>
+                          <button
+                            onClick={() => window.location.reload()}
+                            className="text-[10px] text-white/20 hover:text-white/60 transition-colors uppercase tracking-[0.3em] block mx-auto underline decoration-white/10 underline-offset-4"
+                          >
+                            System hanging? Force Restart
+                          </button>
+                        </motion.div>
+                      )}
                     </div>
                   </div>
                 </motion.div>
