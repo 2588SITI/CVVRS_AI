@@ -453,7 +453,7 @@ export default function App() {
               data: btoa(base64),
               mimeType: 'image/jpeg',
            });
-           if (frames.length >= 11) break;
+           if (frames.length >= 15) break;
         }
       }
 
@@ -499,8 +499,8 @@ export default function App() {
           canvas.height = video.videoHeight * scale;
 
           // Extract frames at intervals
-          // For very long videos, we cap the number of frames to 11 for speed and token safety
-          const step = Math.max(intervalSeconds, duration / 11); 
+          // For very long videos, we cap the number of frames to 15 for speed
+          const step = Math.max(intervalSeconds, duration / 15); 
 
           for (let time = 0; time < duration; time += step) {
             setProgress(Math.min(99, Math.round((time / duration) * 100)));
@@ -528,7 +528,7 @@ export default function App() {
               frames.push({ data: base64, mimeType: 'image/jpeg' });
             }
             
-            if (frames.length >= 11) break;
+            if (frames.length >= 15) break;
           }
 
           setProgress(100);
@@ -563,43 +563,27 @@ export default function App() {
     });
   };
 
-  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 7) => {
+  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 5) => {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
       try {
-        console.log(`Attempt ${i + 1}: Querying ${params.model}...`);
-        const model = ai.getGenerativeModel({ model: params.model });
-        
-        // Add a manual timeout promise
-        const timeoutMs = 120000; // 2 minutes
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error(`Neural Analysis Timed Out (${params.model}). The server took too long to respond. This can happen with large videos or high network latency.`)), timeoutMs)
-        );
-
-        const apiPromise = model.generateContent(params.contents || params);
-        
-        const result = (await Promise.race([apiPromise, timeoutPromise])) as any;
-        const response = await result.response;
-        console.log(`Attempt ${i + 1} Success!`);
+        const response = await ai.models.generateContent(params);
         return response;
       } catch (err: any) {
         lastError = err;
-        const errorMessage = (err.message || "").toLowerCase();
+        const errorMessage = err.message || "";
+        const isRetryable = 
+          errorMessage.includes("503") || 
+          errorMessage.toLowerCase().includes("overloaded") || 
+          errorMessage.toLowerCase().includes("high demand") ||
+          errorMessage.toLowerCase().includes("unavailable") ||
+          errorMessage.toLowerCase().includes("deadline exceeded");
         
-        const isQuota = errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit");
-        const isOverloaded = errorMessage.includes("503") || errorMessage.includes("overloaded") || errorMessage.includes("high demand") || errorMessage.includes("unavailable");
-        const isTimeout = errorMessage.includes("deadline exceeded");
-
-        if ((isQuota || isOverloaded || isTimeout) && i < maxRetries - 1) {
-          // Exponential backoff with jitter
-          // Quota errors (429) need much longer waits
-          const baseDelay = isQuota ? 20000 : 5000;
-          const delay = Math.pow(1.5, i) * baseDelay + Math.random() * 5000;
-          
-          console.warn(`Neural Engine issue (${isQuota ? 'Quota' : 'Load'}), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
-          
-          setLoadingStep(loadingSteps.length - 1); // "Neural Engine Overloaded - Retrying..."
-          
+        if (isRetryable && i < maxRetries - 1) {
+          const delay = Math.pow(2, i) * 5000 + Math.random() * 2000;
+          console.warn(`Neural engine overloaded (503), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
+          // Update loading step to show retry status
+          setLoadingStep(loadingSteps.length - 1); 
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
@@ -629,18 +613,14 @@ export default function App() {
 
     let progressInterval: any;
     try {
-      console.log("Analysis starting... Checking API keys.");
       // Check if the entered key is actually the admin password
+      // Use process.env directly (defined by Vite build tool)
       const adminPassword = process.env.ADMIN_PASSWORD || "";
-      console.log("Admin password status:", adminPassword ? "Set" : "Not Set");
-      
       let apiKey = userApiKey.trim();
+
       if (adminPassword && apiKey === adminPassword.trim()) {
-        console.log("Admin override detected. Using system key.");
         apiKey = (process.env.GEMINI_API_KEY || "").trim();
       }
-      
-      console.log("Using API Key (first 4):", apiKey ? apiKey.substring(0, 4) + "..." : "NONE");
 
       if (!apiKey || apiKey === "undefined" || apiKey === "null") {
         setShowSettings(true);
@@ -694,54 +674,22 @@ export default function App() {
 
       const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
-      let response;
-      try {
-        // Primary Attempt: High-Reasoning Pro Model
-        response = await generateContentWithRetry(ai, {
-          model: "gemini-1.5-pro",
-          contents: [
-            {
-              parts: [
-                ...frames.flatMap((frame, index) => [
-                  { text: `Frame ${index + 1}:` },
-                  { inlineData: frame }
-                ]),
-                { text: promptWithFeedback }
-              ]
-            }
-          ]
-        });
-      } catch (proErr: any) {
-        console.error("Pro Model Error:", proErr);
-        const errMsg = (proErr.message || "").toLowerCase();
-        const isQuotaError = errMsg.includes("429") || errMsg.includes("quota") || errMsg.includes("rate limit");
-        const isModelNotFoundError = errMsg.includes("404") || errMsg.includes("not found");
-        
-        if (isQuotaError || isModelNotFoundError) {
-          console.warn("Falling back to Flash model...");
-          setLoadingStep(loadingSteps.length - 1); 
-          
-          // Secondary Attempt: High-Quota Flash Model
-          response = await generateContentWithRetry(ai, {
-            model: "gemini-1.5-flash",
-            contents: [
-              {
-                parts: [
-                  ...frames.flatMap((frame, index) => [
-                    { text: `Frame ${index + 1}:` },
-                    { inlineData: frame }
-                  ]),
-                  { text: promptWithFeedback }
-                ]
-              }
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-3.1-pro-preview",
+        contents: [
+          {
+            parts: [
+              ...frames.flatMap((frame, index) => [
+                { text: `Frame ${index + 1}:` },
+                { inlineData: frame }
+              ]),
+              { text: promptWithFeedback }
             ]
-          });
-        } else {
-          throw proErr;
-        }
-      }
+          }
+        ]
+      });
 
-      if (!response || !response.text) {
+      if (!response.text) {
         throw new Error("AI failed to generate a report. Please try again with a different video.");
       }
 
@@ -770,7 +718,7 @@ export default function App() {
       let errorMessage = err.message || "An unexpected error occurred during analysis.";
       
       if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota") || errorMessage.toLowerCase().includes("rate limit")) {
-        errorMessage = "AI Quota Exceeded: Both the Pro and Flash models have reached their temporary limit for your API key. Please wait about 60 seconds and try again. TIP: Using your own Gemini API Key from Google AI Studio will provide you with a much higher personal quota.";
+        errorMessage = "AI Quota Exceeded: The system is currently handling too many requests. Please wait about 30-60 seconds and try again. Switching to a faster engine for your next attempt.";
       } else if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("high demand") || errorMessage.toLowerCase().includes("unavailable")) {
         errorMessage = "Neural Engine Overloaded: Google's AI models are currently experiencing extremely high demand globally. We attempted several retries, but the service is still unavailable. Please wait a minute and try again.";
       }
