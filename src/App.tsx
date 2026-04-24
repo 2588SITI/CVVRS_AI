@@ -52,14 +52,11 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" with EXTREME precision. You MUST use intense OPTICAL CHARACTER RECOGNITION (OCR) on the loco desk. If ANY of these five indicators show motion, treat the train as RUNNING:
-1. DDS Speedometer (Digital): Zoom in heavily on the Diagnostic Display System (DDS) monitor. Look for the EXACT numerical digits (km/h) shown on the screen. If the number is > 0, IT IS RUNNING.
-2. ESMON Speedometer (Analog/Digital): Look at the separate ESMON gauge. Read the red LED digit readout inside it. Also verify if the physical needle is lifted above the '0' mark. If the number or needle is above zero, IT IS RUNNING.
-3. Motion Blur outside Lookout Glass: Analyze the tracks, overhead equipment (OHE) masts, or scenery outside the windshield. If there is noticeable motion blur or structural displacement between consecutive frames, IT IS RUNNING.
-4. Throttle (Master Controller) Position: Look at the vertical handle. If pushed forward into the traction zone, IT IS RUNNING.
-5. Reverser Position: If the small horizontal handle below the DDS is pointing forward (not in neutral), IT IS READY/RUNNING.
-CRITICAL OCR COMMAND: DO NOT merely glance at the screens. You MUST actively read the raw digits on the DDS and ESMON. If a number like '45' or '10' is visible, the train is moving.
-
+Detect "Running Condition" by checking these four critical mechanical and visual indicators on the loco desk:
+1. DDS Speedometer: Look at the Diagnostic Display System (DDS) screen. A white digital needle moving on the circular speedometer gauge indicates speed.
+2. ESMON Speedometer: Check the ESMON (Energy Cum Speed Monitoring) speedometer needle. If it registers a speed above zero, the loco is running.
+3. Throttle (Master Controller) Position: Look at the large vertical handle. If it is pushed forward into the traction/driving zone, the train is running.
+4. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
 If these indicators are active, or if you observe relative motion between the loco window and the outside environment, the train is in running condition.
 When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
@@ -207,7 +204,6 @@ export default function App() {
   const [analyzerCliName, setAnalyzerCliName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loadingStep, setLoadingStep] = useState(0);
-  const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [loadingMode, setLoadingMode] = useState<'extracting' | 'analyzing'>('extracting');
   const [progress, setProgress] = useState(0);
   const [pastCorrections, setPastCorrections] = useState<any[]>([]);
@@ -289,7 +285,7 @@ export default function App() {
     "Analyzing Compliance Standards...",
     "Comparing with G&SR Rulebook...",
     "Generating CVVRS Intelligence Report...",
-    "Deep OCR Scanning (Pro Model) - This may take 30-60s...",
+    "Finalizing Disciplinary Summary...",
     "Neural Engine Overloaded - Retrying..."
   ];
 
@@ -454,7 +450,7 @@ export default function App() {
               data: btoa(base64),
               mimeType: 'image/jpeg',
            });
-           if (frames.length >= 11) break;
+           if (frames.length >= 15) break;
         }
       }
 
@@ -500,8 +496,8 @@ export default function App() {
           canvas.height = video.videoHeight * scale;
 
           // Extract frames at intervals
-          // For very long videos, we cap the number of frames to 11 for speed and token safety
-          const step = Math.max(intervalSeconds, duration / 11); 
+          // For very long videos, we cap the number of frames to 15 for speed
+          const step = Math.max(intervalSeconds, duration / 15); 
 
           for (let time = 0; time < duration; time += step) {
             setProgress(Math.min(99, Math.round((time / duration) * 100)));
@@ -529,7 +525,7 @@ export default function App() {
               frames.push({ data: base64, mimeType: 'image/jpeg' });
             }
             
-            if (frames.length >= 11) break;
+            if (frames.length >= 15) break;
           }
 
           setProgress(100);
@@ -564,44 +560,33 @@ export default function App() {
     });
   };
 
-  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 7) => {
+  const generateContentWithRetry = async (ai: GoogleGenAI, params: any, maxRetries = 5) => {
     let lastError: any;
     for (let i = 0; i < maxRetries; i++) {
       try {
-        if (i > 0) {
-          setRetryStatus(`Retry ${i}/${maxRetries}: Optimizing Neural Path...`);
-        }
         const response = await ai.models.generateContent(params);
-        setRetryStatus(null);
         return response;
       } catch (err: any) {
         lastError = err;
-        const errorMessage = (err.message || "").toLowerCase();
+        const errorMessage = err.message || "";
+        const isRetryable = 
+          errorMessage.includes("503") || 
+          errorMessage.toLowerCase().includes("overloaded") || 
+          errorMessage.toLowerCase().includes("high demand") ||
+          errorMessage.toLowerCase().includes("unavailable") ||
+          errorMessage.toLowerCase().includes("deadline exceeded");
         
-        const isQuota = errorMessage.includes("429") || errorMessage.includes("quota") || errorMessage.includes("rate limit");
-        const isOverloaded = errorMessage.includes("503") || errorMessage.includes("overloaded") || errorMessage.includes("high demand") || errorMessage.includes("unavailable");
-        const isTimeout = errorMessage.includes("deadline exceeded");
-
-        if ((isQuota || isOverloaded || isTimeout) && i < maxRetries - 1) {
-          // Exponential backoff with jitter
-          const baseDelay = isQuota ? 15000 : 5000;
-          const delay = Math.pow(1.3, i) * baseDelay + Math.random() * 3000;
-          
-          const waitSecs = Math.round(delay / 1000);
-          setRetryStatus(`Neural Engine ${isQuota ? 'Busy' : 'Overloaded'}. Re-aligning in ${waitSecs}s...`);
-          
-          console.warn(`Neural Engine issue (${isQuota ? 'Quota' : 'Load'}), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
-          
+        if (isRetryable && i < maxRetries - 1) {
+          const delay = Math.pow(2, i) * 5000 + Math.random() * 2000;
+          console.warn(`Neural engine overloaded (503), retrying in ${Math.round(delay)}ms... (Attempt ${i + 1}/${maxRetries})`);
+          // Update loading step to show retry status
           setLoadingStep(loadingSteps.length - 1); 
-          
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
-        setRetryStatus(null);
         throw err;
       }
     }
-    setRetryStatus(null);
     throw lastError;
   };
 
@@ -628,15 +613,15 @@ export default function App() {
       // Check if the entered key is actually the admin password
       // Use process.env directly (defined by Vite build tool)
       const adminPassword = process.env.ADMIN_PASSWORD || "";
-      let apiKey = userApiKey.trim();
+      let apiKey = userApiKey;
 
-      if (adminPassword && apiKey === adminPassword.trim()) {
-        apiKey = (process.env.GEMINI_API_KEY || "").trim();
+      if (adminPassword && userApiKey === adminPassword) {
+        apiKey = process.env.GEMINI_API_KEY || "";
       }
 
-      if (!apiKey || apiKey === "undefined" || apiKey === "null") {
+      if (!apiKey) {
         setShowSettings(true);
-        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password in the Personal Key field.");
+        throw new Error("Personal API Key Required: To protect system quota, every user must provide their own Gemini API key. If you are the owner, please enter your Admin Password.");
       }
 
       const ai = new GoogleGenAI({ apiKey });
@@ -652,27 +637,12 @@ export default function App() {
       
       // 3. Prepare Neural Prompt with Global Learning
       // Simulate analysis progress while AI is thinking
-      let currentProgress = 0;
       progressInterval = setInterval(() => {
         setProgress(prev => {
-          const next = prev >= 95 ? prev : prev + Math.floor(Math.random() * 4) + 1;
-          
-          // Step logic mapping
-          if (next > 90) {
-            setLoadingStep(4); // Intense OCR Scanning
-          } else if (next > 75) {
-            setLoadingStep(3); // Generating Report
-          } else if (next > 50) {
-            setLoadingStep(2); // Comparing Rules
-          } else if (next > 25) {
-            setLoadingStep(1); // Analyzing Compliance
-          } else {
-            setLoadingStep(0); // Detecting Activities
-          }
-          
-          return next;
+          if (prev >= 95) return prev;
+          return prev + Math.floor(Math.random() * 5) + 1;
         });
-      }, 1500);
+      }, 2000);
       const locoContext = manualLocoNo ? `\nIMPORTANT: The Locomotive ID for this analysis is: ${manualLocoNo}. Please use this ID in the report header.` : "";
       const dateContext = manualDateTime ? `\nIMPORTANT: The Date/Time of Recording for this analysis is: ${manualDateTime}. Please use this in the report header.` : "";
       const trainContext = trainNo ? `\nIMPORTANT: The Train No. is: ${trainNo}. Include this in the subheadings.` : "";
@@ -686,52 +656,22 @@ export default function App() {
 
       const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
-      let response;
-      try {
-        // Primary Attempt: High-Reasoning Pro Model
-        response = await generateContentWithRetry(ai, {
-          model: "gemini-3.1-pro-preview",
-          contents: [
-            {
-              parts: [
-                ...frames.flatMap((frame, index) => [
-                  { text: `Frame ${index + 1}:` },
-                  { inlineData: frame }
-                ]),
-                { text: promptWithFeedback }
-              ]
-            }
-          ]
-        });
-      } catch (proErr: any) {
-        const errMsg = proErr.message || "";
-        const isQuotaError = errMsg.includes("429") || errMsg.toLowerCase().includes("quota") || errMsg.toLowerCase().includes("rate limit");
-        
-        if (isQuotaError) {
-          console.warn("Pro model quota exceeded. Falling back to Flash model for continuity...");
-          setLoadingStep(loadingSteps.length - 1); // "Retrying..."
-          
-          // Secondary Attempt: High-Quota Flash Model
-          response = await generateContentWithRetry(ai, {
-            model: "gemini-3-flash-preview",
-            contents: [
-              {
-                parts: [
-                  ...frames.flatMap((frame, index) => [
-                    { text: `Frame ${index + 1}:` },
-                    { inlineData: frame }
-                  ]),
-                  { text: promptWithFeedback }
-                ]
-              }
+      const response = await generateContentWithRetry(ai, {
+        model: "gemini-3-flash-preview",
+        contents: [
+          {
+            parts: [
+              ...frames.flatMap((frame, index) => [
+                { text: `Frame ${index + 1}:` },
+                { inlineData: frame }
+              ]),
+              { text: promptWithFeedback }
             ]
-          });
-        } else {
-          throw proErr;
-        }
-      }
+          }
+        ]
+      });
 
-      if (!response || !response.text) {
+      if (!response.text) {
         throw new Error("AI failed to generate a report. Please try again with a different video.");
       }
 
@@ -760,7 +700,7 @@ export default function App() {
       let errorMessage = err.message || "An unexpected error occurred during analysis.";
       
       if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("quota") || errorMessage.toLowerCase().includes("rate limit")) {
-        errorMessage = "AI Quota Exceeded: Both the Pro and Flash models have reached their temporary limit for your API key. Please wait about 60 seconds and try again. TIP: Using your own Gemini API Key from Google AI Studio will provide you with a much higher personal quota.";
+        errorMessage = "AI Quota Exceeded: The system is currently handling too many requests. Please wait about 30-60 seconds and try again. Switching to a faster engine for your next attempt.";
       } else if (errorMessage.includes("503") || errorMessage.toLowerCase().includes("high demand") || errorMessage.toLowerCase().includes("unavailable")) {
         errorMessage = "Neural Engine Overloaded: Google's AI models are currently experiencing extremely high demand globally. We attempted several retries, but the service is still unavailable. Please wait a minute and try again.";
       }
@@ -886,17 +826,6 @@ export default function App() {
               <p className="text-white/40 text-lg leading-relaxed font-medium max-w-md">
                 High-speed parallel processing for large-scale locomotive crew monitoring and compliance.
               </p>
-              
-              <div className="flex items-center gap-4 mt-8 pt-6 border-t border-white/10 w-max">
-                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-brand-cyan/10 border border-brand-cyan/30 shadow-[0_0_15px_rgba(0,242,255,0.15)] overflow-hidden relative">
-                  <div className="absolute inset-0 bg-brand-cyan/20 animate-pulse-slow" />
-                  <Cpu className="w-4 h-4 text-brand-cyan relative z-10" />
-                </div>
-                <div>
-                  <p className="text-[8px] font-bold text-white/40 uppercase tracking-[0.4em] mb-0.5">Conceptualized & Designed By</p>
-                  <p className="text-sm font-black tracking-[0.2em] uppercase text-brand-cyan glow-text">ADEE TRO BL</p>
-                </div>
-              </div>
             </motion.div>
 
             <motion.div 
@@ -1160,52 +1089,22 @@ export default function App() {
                       </div>
                     </div>
                     <h3 className="text-3xl font-black mt-10 mb-3 tracking-tight">Neural Processing</h3>
-                    <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.4em] h-6 flex items-center justify-center">
-                      <AnimatePresence mode="wait">
-                        <motion.span
-                          key={retryStatus || loadingStep}
-                          initial={{ opacity: 0, y: 5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                        >
-                          {retryStatus || loadingSteps[loadingStep]}
-                        </motion.span>
-                      </AnimatePresence>
+                    <p className="text-white/60 text-[11px] font-black uppercase tracking-[0.4em] h-6">
+                      {loadingSteps[loadingStep]}
                     </p>
                     
                     <div className="mt-16 space-y-4 w-full max-w-md mx-auto">
                       <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-white/50">
-                        <span>{loadingMode === 'extracting' ? 'Extraction Progress' : 'Analysis Progress'}</span>
-                        <div className="flex items-center gap-1">
-                          {progress >= 95 && !retryStatus && <div className="w-1 h-1 bg-brand-cyan rounded-full animate-ping" />}
-                          <span>{progress}%</span>
-                        </div>
+                        <span>Extraction Progress</span>
+                        <span>{progress}%</span>
                       </div>
                       <div className="h-2 bg-white/5 rounded-full overflow-hidden p-0.5">
                         <motion.div 
                           className="h-full bg-cyan-500 rounded-full shadow-[0_0_15px_rgba(0,242,255,0.5)]"
                           initial={{ width: "0%" }}
                           animate={{ width: `${progress}%` }}
-                          transition={progress >= 95 ? { repeat: Infinity, duration: 2, repeatType: "reverse" } : { duration: 0.5 }}
                         />
                       </div>
-                      {progress >= 95 && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="space-y-4"
-                        >
-                           <p className="text-white/30 text-[10px] uppercase tracking-widest italic animate-pulse">
-                            Deep Neural Analysis is intensive. Still processing...
-                          </p>
-                          <button
-                            onClick={() => window.location.reload()}
-                            className="text-[10px] text-white/20 hover:text-white/60 transition-colors uppercase tracking-[0.3em] block mx-auto underline decoration-white/10 underline-offset-4"
-                          >
-                            System hanging? Force Restart
-                          </button>
-                        </motion.div>
-                      )}
                     </div>
                   </div>
                 </motion.div>
