@@ -28,6 +28,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
@@ -826,6 +827,9 @@ export default function App() {
               <p className="text-white/40 text-lg leading-relaxed font-medium max-w-md">
                 High-speed parallel processing for large-scale locomotive crew monitoring and compliance.
               </p>
+              <p className="text-brand-magenta/60 text-xs tracking-[0.2em] uppercase font-black italic mt-4">
+                Conceptualised and Designed by ADEE TRO BL
+              </p>
             </motion.div>
 
             <motion.div 
@@ -1149,6 +1153,7 @@ export default function App() {
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
                             <Markdown 
                               remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
                               components={{
                                 p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
                                 li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
@@ -1157,15 +1162,19 @@ export default function App() {
                                 h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
                                 h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
                                 code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
-                                strong: ({ children }) => <strong className="font-bold text-white">{renderContentWithFrames(children)}</strong>,
+                                strong: ({ children }) => <strong className="font-bold text-white print:text-black">{renderContentWithFrames(children)}</strong>,
                                 em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
                               }}
                             >
-                              {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
+                              {(report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : ""))
+                                .replace(
+                                  /((?:\*\*|\#|\#\#|\#\#\#)?\s*Non-Compliance Observations?:?.*[\s\S]*?)(?=(?:\*\*|\#|\#\#|\#\#\#)?\s*Compliance Observations?:?.*|5\. Compliance Summary.*|6\. Disciplinary Summary.*|$)/i,
+                                  '<div class="text-red-500 font-semibold print:text-red-600">\n\n$1\n\n</div>'
+                                )}
                             </Markdown>
                             
                             <div className="mt-16 pt-8 border-t border-black/5 italic text-black/40 text-[10px] tracking-widest uppercase font-black print:block hidden">
-                              Neural Safety Division • Western Railway
+                              Neural Safety Division • Western Railway • Conceptualised and Designed by ADEE TRO BL
                             </div>
                           </div>
                         </div>
@@ -1226,7 +1235,7 @@ export default function App() {
             </AnimatePresence>
 
             {/* Past Global Corrections Section */}
-            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta">
+            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta no-print">
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-magenta/10 blur-3xl rounded-full -ml-24 -mb-24" />
               
               <div className="flex items-center justify-between px-2 relative">
