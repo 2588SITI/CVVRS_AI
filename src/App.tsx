@@ -1164,7 +1164,7 @@ export default function App() {
                                       remarkPlugins={[remarkGfm]}
                                       rehypePlugins={[rehypeRaw]}
                                       components={{
-                                        p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
+                                        p: ({ children }) => <div className="mb-4">{renderContentWithFrames(children)}</div>,
                                         li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
                                         td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
                                         tr: ({ children }) => {
