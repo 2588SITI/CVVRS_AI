@@ -53,12 +53,11 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" by checking these five critical mechanical and visual indicators on the loco desk:
+Detect "Running Condition" by checking these four critical mechanical and visual indicators on the loco desk:
 1. DDS Speedometer: Look at the Diagnostic Display System (DDS) screen. A white digital needle moving on the circular speedometer gauge indicates speed.
 2. ESMON Speedometer: Check the ESMON (Energy Cum Speed Monitoring) speedometer needle. If it registers a speed above zero, the loco is running.
-3. Throttle (Master Controller) Position: Look at the large vertical handle. Pushing it forward applies traction/power (train accelerates, speedometer needle moves up). Pulling it backward applies the Dynamic Brake.
-4. A9 Brake (Auto Brake): Look for the application of the A9 train brake handle. Pay special attention to instances where the LP applies the A9 brake and dynamic brake simultaneously (e.g., applying A9 while pulling throttle backward). If the throttle is pushed forward after being pulled back, and the speedometer needle starts moving, this indicates releasing the brake and applying traction.
-5. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
+3. Throttle (Master Controller) Position: Look at the large vertical handle. If it is pushed forward into the traction/driving zone, the train is running.
+4. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
 If these indicators are active, or if you observe relative motion between the loco window and the outside environment, the train is in running condition.
 When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
@@ -1165,7 +1164,7 @@ export default function App() {
                                       remarkPlugins={[remarkGfm]}
                                       rehypePlugins={[rehypeRaw]}
                                       components={{
-                                        p: ({ children }) => <div className="mb-4 text-white/60 print:text-black/80">{renderContentWithFrames(children)}</div>,
+                                        p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
                                         li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
                                         td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
                                         tr: ({ children }) => {
