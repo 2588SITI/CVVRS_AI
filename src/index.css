@@ -166,11 +166,6 @@ body {
     overflow: visible !important;
   }
 
-  .prose .non-compliance-section,
-  .prose .non-compliance-section * {
-    color: #ef4444 !important;
-  }
-
   /* Table Printing Styles */
   table {
     width: 100% !important;
@@ -236,12 +231,6 @@ body {
 
 .prose th {
   background: rgba(255, 255, 255, 0.05);
-}
-
-.prose .non-compliance-section,
-.prose .non-compliance-section * {
-  color: #ef4444 !important;
-  font-weight: bold !important;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
