@@ -28,6 +28,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { GoogleGenAI } from "@google/genai";
@@ -52,11 +53,12 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" by checking these four critical mechanical and visual indicators on the loco desk:
+Detect "Running Condition" by checking these five critical mechanical and visual indicators on the loco desk:
 1. DDS Speedometer: Look at the Diagnostic Display System (DDS) screen. A white digital needle moving on the circular speedometer gauge indicates speed.
 2. ESMON Speedometer: Check the ESMON (Energy Cum Speed Monitoring) speedometer needle. If it registers a speed above zero, the loco is running.
-3. Throttle (Master Controller) Position: Look at the large vertical handle. If it is pushed forward into the traction/driving zone, the train is running.
-4. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
+3. Throttle (Master Controller) Position: Look at the large vertical handle. Pushing it forward applies traction/power (train accelerates, speedometer needle moves up). Pulling it backward applies the Dynamic Brake.
+4. A9 Brake (Auto Brake): Look for the application of the A9 train brake handle. Pay special attention to instances where the LP applies the A9 brake and dynamic brake simultaneously (e.g., applying A9 while pulling throttle backward). If the throttle is pushed forward after being pulled back, and the speedometer needle starts moving, this indicates releasing the brake and applying traction.
+5. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
 If these indicators are active, or if you observe relative motion between the loco window and the outside environment, the train is in running condition.
 When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
@@ -826,6 +828,9 @@ export default function App() {
               <p className="text-white/40 text-lg leading-relaxed font-medium max-w-md">
                 High-speed parallel processing for large-scale locomotive crew monitoring and compliance.
               </p>
+              <p className="text-brand-magenta/60 text-xs tracking-[0.2em] uppercase font-black italic mt-4">
+                Conceptualised and Designed by ADEE TRO BL
+              </p>
             </motion.div>
 
             <motion.div 
@@ -1147,25 +1152,54 @@ export default function App() {
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
                         <div id="pdf-report-container" className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
-                            <Markdown 
-                              remarkPlugins={[remarkGfm]}
-                              components={{
-                                p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
-                                li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
-                                td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
-                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
-                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
-                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
-                                code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
-                                strong: ({ children }) => <strong className="font-bold text-white">{renderContentWithFrames(children)}</strong>,
-                                em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
-                              }}
-                            >
-                              {report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "")}
-                            </Markdown>
+                            {(() => {
+                              const fullReport = report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "");
+                              const reportParts = fullReport.split(/((?:-|\*|\*\*|\#|\#\#|\#\#\#|\d+\.)?\s*Non-Compliance Observations?:?[\s\S]*?)(?=(?:-|\*|\*\*|\#|\#\#|\#\#\#|\d+\.)?\s*Compliance Observations?:?|5\. Compliance Summary|6\. Disciplinary Summary|$)/i);
+                              
+                              return reportParts.map((part, idx) => {
+                                const isNonCompliance = idx % 2 === 1;
+                                
+                                return (
+                                  <div key={idx} className={isNonCompliance ? "text-red-500 font-bold print:text-red-600 [&_*]:!text-red-500 print:[&_*]:!text-red-600 [&_*]:!font-bold [&_strong]:!text-red-500 print:[&_strong]:!text-red-600" : ""}>
+                                    <Markdown 
+                                      remarkPlugins={[remarkGfm]}
+                                      rehypePlugins={[rehypeRaw]}
+                                      components={{
+                                        p: ({ children }) => <div className="mb-4 text-white/60 print:text-black/80">{renderContentWithFrames(children)}</div>,
+                                        li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
+                                        td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
+                                        tr: ({ children }) => {
+                                          const extractText = (node: any): string => {
+                                            if (typeof node === 'string') return node;
+                                            if (Array.isArray(node)) return node.map(extractText).join('');
+                                            if (node && node.props && node.props.children) return extractText(node.props.children);
+                                            return '';
+                                          };
+                                          const rowText = extractText(children);
+                                          const isNonCompliant = /non-compliant|non-compliance/i.test(rowText);
+                                          return (
+                                            <tr className={isNonCompliant ? "text-red-500 font-bold print:text-red-600 [&_*]:!text-red-500 print:[&_*]:!text-red-600 bg-red-500/10 print:bg-red-50" : ""}>
+                                              {children}
+                                            </tr>
+                                          );
+                                        },
+                                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
+                                        h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
+                                        h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
+                                        code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
+                                        strong: ({ children }) => <strong className="font-bold text-white print:text-black">{renderContentWithFrames(children)}</strong>,
+                                        em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
+                                      }}
+                                    >
+                                      {part}
+                                    </Markdown>
+                                  </div>
+                                );
+                              });
+                            })()}
                             
                             <div className="mt-16 pt-8 border-t border-black/5 italic text-black/40 text-[10px] tracking-widest uppercase font-black print:block hidden">
-                              Neural Safety Division • Western Railway
+                              Neural Safety Division • Western Railway • Conceptualised and Designed by ADEE TRO BL
                             </div>
                           </div>
                         </div>
@@ -1226,7 +1260,7 @@ export default function App() {
             </AnimatePresence>
 
             {/* Past Global Corrections Section */}
-            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta">
+            <div className="mt-12 space-y-6 glass-card p-8 rounded-[2.5rem] relative overflow-hidden ai-shimmer neon-glow-magenta no-print">
               <div className="absolute bottom-0 left-0 w-48 h-48 bg-brand-magenta/10 blur-3xl rounded-full -ml-24 -mb-24" />
               
               <div className="flex items-center justify-between px-2 relative">
