@@ -1151,36 +1151,27 @@ export default function App() {
                       <div className="p-1 rounded-[3rem] bg-gradient-to-br from-white/10 to-transparent shadow-2xl print:p-0 print:bg-none print:shadow-none print:rounded-none print:overflow-visible">
                         <div id="pdf-report-container" className="p-12 rounded-[2.9rem] glass-card border border-white/5 overflow-visible print:bg-white print:text-black print:p-0 print:border-0 print:shadow-none print:rounded-none print:overflow-visible print-container">
                           <div className="prose prose-invert prose-cyan max-w-none prose-headings:font-black prose-headings:tracking-tighter prose-headings:italic prose-p:text-white/60 prose-p:leading-relaxed prose-strong:text-white print:prose-invert-0 print:prose-p:text-black/80 print:prose-strong:text-black">
-                            {(() => {
-                              const fullReport = report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : "");
-                              const reportParts = fullReport.split(/((?:-|\*|\*\*|\#|\#\#|\#\#\#|\d+\.)?\s*Non-Compliance Observations?:?[\s\S]*?)(?=(?:-|\*|\*\*|\#|\#\#|\#\#\#|\d+\.)?\s*Compliance Observations?:?|5\. Compliance Summary|6\. Disciplinary Summary|$)/i);
-                              
-                              return reportParts.map((part, idx) => {
-                                const isNonCompliance = idx % 2 === 1;
-                                
-                                return (
-                                  <div key={idx} className={isNonCompliance ? "text-red-500 font-bold print:text-red-600 [&_*]:!text-red-500 print:[&_*]:!text-red-600 [&_*]:!font-bold [&_strong]:!text-red-500 print:[&_strong]:!text-red-600" : ""}>
-                                    <Markdown 
-                                      remarkPlugins={[remarkGfm]}
-                                      rehypePlugins={[rehypeRaw]}
-                                      components={{
-                                        p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
-                                        li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
-                                        td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
-                                        h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
-                                        h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
-                                        h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
-                                        code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
-                                        strong: ({ children }) => <strong className="font-bold text-white print:text-black">{renderContentWithFrames(children)}</strong>,
-                                        em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
-                                      }}
-                                    >
-                                      {part}
-                                    </Markdown>
-                                  </div>
-                                );
-                              });
-                            })()}
+                            <Markdown 
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
+                              components={{
+                                p: ({ children }) => <p className="mb-4">{renderContentWithFrames(children)}</p>,
+                                li: ({ children }) => <li className="mb-2">{renderContentWithFrames(children)}</li>,
+                                td: ({ children }) => <td className="p-3 border border-white/10">{renderContentWithFrames(children)}</td>,
+                                h1: ({ children }) => <h1 className="text-2xl font-bold mb-4">{renderContentWithFrames(children)}</h1>,
+                                h2: ({ children }) => <h2 className="text-xl font-bold mb-3">{renderContentWithFrames(children)}</h2>,
+                                h3: ({ children }) => <h3 className="text-lg font-bold mb-2">{renderContentWithFrames(children)}</h3>,
+                                code: ({ children }) => <code className="bg-white/5 px-1 rounded">{renderContentWithFrames(children)}</code>,
+                                strong: ({ children }) => <strong className="font-bold text-white print:text-black">{renderContentWithFrames(children)}</strong>,
+                                em: ({ children }) => <em className="italic">{renderContentWithFrames(children)}</em>,
+                              }}
+                            >
+                              {(report + (userDeviationReport ? `\n\n---\n\n### User Deviation / AI Error Report\n\n${userDeviationReport}` : ""))
+                                .replace(
+                                  /((?:\*\*|\#|\#\#|\#\#\#)?\s*Non-Compliance Observations?:?.*[\s\S]*?)(?=(?:\*\*|\#|\#\#|\#\#\#)?\s*Compliance Observations?:?.*|5\. Compliance Summary.*|6\. Disciplinary Summary.*|$)/i,
+                                  '<div class="non-compliance-section">\n\n$1\n\n</div>'
+                                )}
+                            </Markdown>
                             
                             <div className="mt-16 pt-8 border-t border-black/5 italic text-black/40 text-[10px] tracking-widest uppercase font-black print:block hidden">
                               Neural Safety Division • Western Railway • Conceptualised and Designed by ADEE TRO BL
