@@ -53,12 +53,19 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" by checking these four critical mechanical and visual indicators on the loco desk:
-1. DDS Speedometer: Look at the Diagnostic Display System (DDS) screen. A white digital needle moving on the circular speedometer gauge indicates speed.
-2. ESMON Speedometer: Check the ESMON (Energy Cum Speed Monitoring) speedometer needle. If it registers a speed above zero, the loco is running.
-3. Throttle (Master Controller) Position: Look at the large vertical handle. If it is pushed forward into the traction/driving zone, the train is running.
-4. Reverser Position: Look at the small horizontal handle below the DDS. If it is pointing forward, the loco is set to move. 
-If these indicators are active, or if you observe relative motion between the loco window and the outside environment, the train is in running condition.
+Detect "Running Condition" by checking these primary visual indicators. If the ROBOFLOW DETECTIONS text indicates motion, prioritize it:
+1. AI Model Detections (Roboflow): If the ROBOFLOW DETECTIONS text contains "DDS SPEEDOMETER IN MOTION" class, the locomotive is DEFINITIVELY in MOTION/RUNNING condition.
+2. Lookout Glass (Windscreen / View Ahead): This is a critical visual indicator. If you observe any relative motion between the locomotive cab and the outside world (trees, OHE masts, ground, or tracks moving/blurring), the locomotive is DEFINITIVELY in MOTION/RUNNING condition. Do NOT report stationary if the view outside the window is changing.
+3. DDS Speedometer (CRITICAL): Analyze the Diagnostic Display System (DDS) screen using these specific rules:
+   - Reference Scale: The speedometer dial ranges from 0 to 160 km/h. The top-center (12 o'clock position) is exactly 80 km/h.
+   - Needle Detection: Locate the white needle in the center. If it is straight up (pointing at top-center), speed is 80 km/h. If it is tilted to the left, speed is < 80 km/h. If tilted to the right, speed is > 80 km/h.
+   - Digital Confirmation: Check the green box below the needle which displays 'Loco Speed' value (e.g., 0.0, 80.5, etc.). Use OCR to read this number.
+   - Handling Blur: If the video is blurred, prioritize the needle's angle over the digital text.
+   - Output Requirement: You must detect and report the speed for every analyzed frame/second.
+   - Conclusion: If the needle is pointing UPWARDS (at 80) or anywhere above zero, the locomotive is DEFINITIVELY in MOTION. Report "Running" even if the outside view is dark or AI model misses it.
+4. Analog Speedometers (ESMON / TELPRO / MEDHA): A needle above zero indicates running.
+5. Controls: Throttle (Master Controller) pushed forward or Reverser handle pointing forward/reverse.
+If ANY of these indicators (especially Roboflow detections or relative motion through the lookout glass) are active, the train is in running condition.
 When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
 2. Alertness: Is the crew visibly alert?
@@ -73,7 +80,12 @@ When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT
 11. Leaving Seat: Is the crew leaving their designated place for other activities?
 
 B. Activity Analysis - Stationary Condition
-Detect "Stationary Condition" by checking that the white digital needle on the DDS speedometer and the ESMON speedometer needle are both at zero, the Throttle (Master Controller) is in the Neutral position, and the Reverser handle is in Neutral. You should also verify this with the lack of relative motion between the locomotive and the outside environment.
+Detect "Stationary Condition" ONLY if:
+1. AI Model Detections (Roboflow): The ROBOFLOW DETECTIONS text explicitly contains "DDS SPEEDOMETER NO MOTION" class AND no "DDS SPEEDOMETER IN MOTION" class is detected.
+2. No Relative Motion: There is NO movement visible through the lookout glass (windscreen). The background (trees, OHE masts, ground) is perfectly still.
+3. Speedometer Needles: The white digital needle on the DDS speedometer and all analog needles (ESMON/TELPRO/MEDHA) are strictly at zero. 
+4. Controls: Throttle and Reverser are in Neutral.
+WARNING: If the Roboflow AI detects 'DDS SPEEDOMETER IN MOTION' or if the DDS needle is pointing at 80 kmph or if you see background motion through the windshield, the train is in MOTION. Reporting "stationary" in such cases is a critical analysis failure. Do not be fooled by digital "0.0" text if the visual needle is at 80.
 When the train is stopped, check the following:
 1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
 2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
@@ -95,18 +107,20 @@ The final output must be a structured report with the following elements in this
    - Observation Period: [Start Time] to [End Time]
 
 3. Chronological Event Log (CRITICAL):
-   Provide a detailed timeline log of all notable interactions observed in the footage. Always extract the real "on-screen" burned-in timestamp for each log.
+   Provide a detailed timeline log of all notable interactions and the locomotive speed for every analyzed second. Always extract the real "on-screen" burned-in timestamp for each log.
    *Example:*
-   - [09:07:44]: ALP raised left hand to call out signal.
-   - [09:12:15]: Loco Pilot seen using control panel.
-   *(List all detected events in strict chronological order)*
+   - [09:07:44] - 80.5 km/h: ALP raised left hand to call out signal.
+   - [09:12:15] - 10.2 km/h: Loco Pilot seen using control panel.
+   - [09:15:30] - 0.0 km/h: Locomotive in stationary condition.
+   *(List all detected events and speeds in strict chronological order)*
 
 4. Detailed Analysis:
    - Mandatory Checkpoints: You MUST explicitly state the following points in this section, regardless of whether it's compliant or not:
-     1. Mobile Phone Usage: If they are not talking on a mobile phone, explicitly state "LP & ALP did not use mobile phone". If they did, document the usage.
-     2. Signal Calling: Explicitly state the use of calling out signals with hand gestures or not.
-     3. Standstill Condition: Explicitly state whether the reverser and throttle are in neutral condition or not while the loco is in stand still condition.
-     4. Crew Communication: Explicitly state whether they are talking with each other during the whole journey or not.
+     1. Locomotive Speed: Explicitly report the detected speed from the DDU/DDS screen for the observation period based on the needle angle (top-center=80km/h) and digital display.
+     2. Mobile Phone Usage: If they are not talking on a mobile phone, explicitly state "LP & ALP did not use mobile phone". If they did, document the usage.
+     3. Signal Calling: Explicitly state the use of calling out signals with hand gestures or not.
+     4. Standstill Condition: Explicitly state whether the reverser and throttle are in neutral condition or not while the loco is in stand still condition.
+     5. Crew Communication: Explicitly state whether they are talking with each other during the whole journey or not.
    - Non-Compliance Observations: List all violations, deviations, or non-compliant activities here AFTER the mandatory checkpoints. This is the most important section. If no violations are found, state "No non-compliance detected."
      CRITICAL: For each individual Non-Compliance Observation, you MUST identify exactly ONE specific frame that best illustrates the violation. At the very end of the description for that specific observation (on a new line), insert the tag [[FRAME_IMAGE:n]] where n is the frame number. Do NOT include more than one photo per observation.
    - Compliance Observations: List all compliant activities and routine checks here. Do NOT include frame tags in this section unless explicitly necessary for safety verification.
@@ -217,6 +231,12 @@ export default function App() {
     }
     return "";
   });
+  const [userRoboflowApiKey, setUserRoboflowApiKey] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("CVVRS_ROBOFLOW_API_KEY") || "";
+    }
+    return "";
+  });
   const [showSettings, setShowSettings] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -267,9 +287,11 @@ export default function App() {
     }
   };
 
-  const saveApiKey = (key: string) => {
+  const saveApiKey = (key: string, roboflowKey: string) => {
     setUserApiKey(key);
+    setUserRoboflowApiKey(roboflowKey);
     localStorage.setItem("CVVRS_USER_API_KEY", key);
+    localStorage.setItem("CVVRS_ROBOFLOW_API_KEY", roboflowKey);
     setShowSettings(false);
   };
 
@@ -636,6 +658,29 @@ export default function App() {
         setLoadingMode('analyzing');
       }
       
+      let detectionsText = "";
+      if (userRoboflowApiKey && frames.length > 0) {
+        try {
+          const detectionPromises = frames.map(async (frame, i) => {
+            const response = await fetch(`https://detect.roboflow.com/cvvrs_ai_model/2?api_key=${userRoboflowApiKey}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/x-www-form-urlencoded" },
+              body: frame.data
+            });
+            const data = await response.json();
+            if (data.predictions) {
+              const objects = data.predictions.map((p: any) => `${p.class}`).join(", ");
+              return `Frame ${i + 1} Model Detects: ${objects || "None"}`;
+            }
+            return `Frame ${i + 1} Model Detects: None`;
+          });
+          const detectionResults = await Promise.all(detectionPromises);
+          detectionsText = `\nROBOFLOW DETECTIONS (CVVRS_AI_MODEL per frame. Use this to verify objects in frames):\n${detectionResults.join('\n')}`;
+        } catch (e) {
+          console.error("Roboflow inference error:", e);
+        }
+      }
+
       // 3. Prepare Neural Prompt with Global Learning
       // Simulate analysis progress while AI is thinking
       progressInterval = setInterval(() => {
@@ -655,7 +700,7 @@ export default function App() {
         ? `\nPAST GLOBAL CORRECTIONS (Learn from these mistakes across all users): ${pastCorrections.map(c => `[Context: ${c.context}] -> Correction: ${c.correction}`).join('; ')}`
         : "";
 
-      const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
+      const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${detectionsText}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
       const response = await generateContentWithRetry(ai, {
         model: "gemini-3-flash-preview",
@@ -1419,22 +1464,37 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
-                      Gemini API Key / Admin Password
-                    </label>
-                    <input 
-                      type="password"
-                      value={userApiKey}
-                      onChange={(e) => setUserApiKey(e.target.value)}
-                      placeholder="Enter Key or Admin Password..."
-                      className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-cyan-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono"
-                    />
+                  <div className="space-y-4">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
+                        Gemini API Key / Admin Password
+                      </label>
+                      <input 
+                        type="password"
+                        value={userApiKey}
+                        onChange={(e) => setUserApiKey(e.target.value)}
+                        placeholder="Enter Key or Admin Password..."
+                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-cyan-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono"
+                      />
+                    </div>
+                    
+                    <div className="space-y-3 mt-4">
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
+                        Roboflow API Key (CVVRS Model 2)
+                      </label>
+                      <input 
+                        type="password"
+                        value={userRoboflowApiKey}
+                        onChange={(e) => setUserRoboflowApiKey(e.target.value)}
+                        placeholder="Enter Roboflow API Key (Optional)..."
+                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-magenta-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono"
+                      />
+                    </div>
                   </div>
 
                   <div className="flex gap-4">
                     <button 
-                      onClick={() => saveApiKey(userApiKey)}
+                      onClick={() => saveApiKey(userApiKey, userRoboflowApiKey)}
                       className="flex-1 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-cyan-600/20"
                     >
                       Save Configuration
@@ -1442,7 +1502,9 @@ export default function App() {
                     <button 
                       onClick={() => {
                         setUserApiKey("");
+                        setUserRoboflowApiKey("");
                         localStorage.removeItem("CVVRS_USER_API_KEY");
+                        localStorage.removeItem("CVVRS_ROBOFLOW_API_KEY");
                         setShowSettings(false);
                       }}
                       className="px-6 py-4 bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-white/40 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-white/5"
