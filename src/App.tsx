@@ -56,24 +56,14 @@ A. Activity Analysis - Running Condition
 Detect "Running Condition" by checking these primary visual indicators. If the ROBOFLOW DETECTIONS text indicates motion, prioritize it:
 1. AI Model Detections (Roboflow): If the ROBOFLOW DETECTIONS text contains "DDS SPEEDOMETER IN MOTION" class, the locomotive is DEFINITIVELY in MOTION/RUNNING condition.
 2. Lookout Glass (Windscreen / View Ahead): This is a critical visual indicator. If you observe any relative motion between the locomotive cab and the outside world (trees, OHE masts, ground, or tracks moving/blurring), the locomotive is DEFINITIVELY in MOTION/RUNNING condition. Do NOT report stationary if the view outside the window is changing.
-3. DDS Speedometer (CRITICAL): Analyze the Diagnostic Display System (DDS) screen using these specific rules to avoid common misinterpretation traps:
-   - Clock-Face Mapping (Scale 0-160 km/h):
+3. DDS Speedometer (CRITICAL): Analyze the Diagnostic Display System (DDS) screen using these specific rules. PRIORITY: GREEN DIGITAL TEXT > NEEDLE ANGLE.
+   - STEP 1 (PRIMARY): Read the exact number in the small GREEN DIGITAL BOX (e.g., 0.0, 40.5, 80). This number comes directly from the locomotive sensors and is 100% accurate. ALWAYS report this as the EXACT speed.
+   - STEP 2 (SECONDARY): Observe the white needle angle for motion confirmation.
      - 8 O'CLOCK: 0 km/h (True Zero).
-     - 9 O'CLOCK: 20 km/h.
-     - 10 O'CLOCK: 40 km/h.
-     - 11 O'CLOCK: 60 km/h.
      - 12 O'CLOCK (Top-Center): 80 km/h.
-     - 13 O'CLOCK: 100 km/h.
-     - 14 O'CLOCK: 120 km/h.
-     - 15 O'CLOCK: 140 km/h.
-     - 16 O'CLOCK: 160 km/h.
-   - Priority Logic (Needle over Digital):
-     - ⚠️ THE "EARLY MOTION" TRAP: The moment the needle leaves the 8 o'clock position and moves towards 9 o'clock, the locomotive is RUNNING.
-     - ⚠️ THE "FALSE 0.0" TRAP: The digital text box might show "0.0" while the needle is tilted (e.g., at 9 or 10 o'clock). In such cases, the DIGITAL TEXT IS WRONG. You MUST trust the NEEDLE ANGLE.
-     - ⚠️ THE "12 O'CLOCK" TRAP: A straight-up needle is 80 km/h, NOT zero. 
-   - Speed Calculation: Use the clock-face mapping above to interpolate speed.
-   - Conclusion: If the needle is pointing ANYWHERE above the 8 o'clock position (even a slight nudge towards 9 o'clock), the locomotive is DEFINITIVELY in MOTION. Report "Running" even if the outside view is dark or digital text shows "0.0".
-   - Output: Report the speed for every analyzed frame based on needle position. Priority: Needle Angle > OCR Text.
+     - ⚠️ PARALLAX NOTE: If the digital box shows 0.0 but the needle looks slightly tilted (e.g., 8.5 o'clock), the DIGITAL 0.0 IS CORRECT. The tilt is a camera perspective/parallax artifact.
+     - ⚠️ MOTION CONFIRMATION: If the digital box shows > 0, the locomotive is RUNNING.
+   - Output: Report the speed using the GREEN DIGITAL OCR TEXT as the primary source. Only use the needle angle if the digital box is completely unreadable.
 4. Analog Speedometers (ESMON / TELPRO / MEDHA): A needle above the starting mark indicates running.
 5. Controls: Traction Throttle (Master Controller) pushed forward or Reverser handle pointing forward/reverse. If the LP pushes the throttle forward, it is a definitive sign of intended motion.
 If ANY of these indicators (especially needle angle, throttle engagement, or relative motion through the lookout glass) are active, the train is in running condition.
@@ -91,12 +81,12 @@ When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT
 11. Leaving Seat: Is the crew leaving their designated place for other activities?
 
 B. Activity Analysis - Stationary Condition
-Detect "Stationary Condition" ONLY if ALL these conditions are met:
-1. DDS Speedometer: The needle is strictly at the 8 O'CLOCK position and the digital text shows 0.0.
+Detect "Stationary Condition" ONLY if:
+1. DDS Speedometer (PRIMARY): The GREEN DIGITAL box shows "0.0". TRUST THE DIGITAL 0.0 even if the needle looks slightly offset due to parallax.
 2. No Relative Motion: There is NO movement visible through the lookout glass (windscreen).
 3. Speedometer Needles: All analog needles (ESMON/TELPRO/MEDHA) are strictly at zero. 
 4. Controls: Throttle and Reverser are in Neutral.
-WARNING: If the needle is at 10 o'clock (40 km/h) or 12 o'clock (80 km/h), the train is in MOTION, even if digital text says "0.0". Reporting "stationary" in such cases is a critical analysis failure.
+WARNING: If the GREEN DIGITAL box shows any value above 0.0, the train is in MOTION. Do NOT declare stationary unless the digital speed is 0.0.
 When the train is stopped, check the following:
 1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
 2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
@@ -127,7 +117,7 @@ The final output must be a structured report with the following elements in this
 
 4. Detailed Analysis:
    - Mandatory Checkpoints: You MUST explicitly state the following points in this section, regardless of whether it's compliant or not:
-     1. Locomotive Speed: Explicitly report the detected speed from the DDU/DDS screen for the observation period based on the needle angle (top-center=80km/h) and digital display.
+     1. Locomotive Speed: Explicitly report the detected speed from the DDU/DDS screen using the GREEN DIGITAL OCR text as the primary source (e.g., "Speed: 40.5 km/h").
      2. Mobile Phone Usage: If they are not talking on a mobile phone, explicitly state "LP & ALP did not use mobile phone". If they did, document the usage.
      3. Signal Calling: Explicitly state the use of calling out signals with hand gestures or not.
      4. Standstill Condition: Explicitly state whether the reverser and throttle are in neutral condition or not while the loco is in stand still condition.
