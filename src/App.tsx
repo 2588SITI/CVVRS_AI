@@ -31,6 +31,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { runLocalModel } from "./lib/onnxLib";
 import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
 import { collection, addDoc, query, orderBy, limit, onSnapshot } from "firebase/firestore";
@@ -54,20 +55,16 @@ Analyze the provided frames from the CVVRS system to detect the equipment in the
 
 A. Activity Analysis - Running Condition
 Detect "Running Condition" by checking these primary visual indicators. If the ROBOFLOW DETECTIONS text indicates motion, prioritize it:
-1. AI Model Detections (Roboflow): If the ROBOFLOW DETECTIONS text contains "DDS SPEEDOMETER IN MOTION" class, the locomotive is DEFINITIVELY in MOTION/RUNNING condition.
-2. Lookout Glass (Windscreen / View Ahead): This is a critical visual indicator. If you observe any relative motion between the locomotive cab and the outside world (trees, OHE masts, ground, or tracks moving/blurring), the locomotive is DEFINITIVELY in MOTION/RUNNING condition. Do NOT report stationary if the view outside the window is changing.
-3. DDS Speedometer (CRITICAL): Analyze the Diagnostic Display System (DDS) screen using these specific rules. PRIORITY: GREEN DIGITAL TEXT > NEEDLE ANGLE.
-   - STEP 1 (PRIMARY): Read the exact number in the small GREEN DIGITAL BOX (e.g., 0.0, 40.5, 80). This number comes directly from the locomotive sensors and is 100% accurate. ALWAYS report this as the EXACT speed.
-   - STEP 2 (SECONDARY): Observe the white needle angle for motion confirmation.
-     - 8 O'CLOCK: 0 km/h (True Zero).
-     - 12 O'CLOCK (Top-Center): 80 km/h.
-     - ⚠️ PARALLAX NOTE: If the digital box shows 0.0 but the needle looks slightly tilted (e.g., 8.5 o'clock), the DIGITAL 0.0 IS CORRECT. The tilt is a camera perspective/parallax artifact.
-     - ⚠️ MOTION CONFIRMATION: If the digital box shows > 0, the locomotive is RUNNING.
-   - Output: Report the speed using the GREEN DIGITAL OCR TEXT as the primary source. Only use the needle angle if the digital box is completely unreadable.
-4. Analog Speedometers (ESMON / TELPRO / MEDHA): A needle above the starting mark indicates running.
-5. Controls: Traction Throttle (Master Controller) pushed forward or Reverser handle pointing forward/reverse. If the LP pushes the throttle forward, it is a definitive sign of intended motion.
-If ANY of these indicators (especially needle angle, throttle engagement, or relative motion through the lookout glass) are active, the train is in running condition.
-When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
+1. AI Model Detections (Roboflow / Local ONNX): If the DETECTIONS text contains "DDS SPEEDOMETER IN MOTION" or "Running" class, the locomotive is DEFINITIVELY in MOTION/RUNNING condition. If it shows "Deadstop", it is likely stationary.
+2. Lookout Glass (Windscreen / View Ahead) & Cab Vibrations - CRITICAL FALLBACK: If the speedometer is completely unreadable, you MUST determine if the train is in motion by looking for relative motion between the locomotive cab and the outside world (trees, OHE masts, ground, tracks moving/blurring), or physical vibrations/shaking in the cab. If ANY of these are present, the locomotive is DEFINITIVELY in MOTION/RUNNING condition. Do NOT report stationary if the view outside is changing or the cab is vibrating. If you cannot determine the exact speed, at least explicitly mark the state as "Running (Speed Unknown - Motion Detected)".
+3. Motion State (CRITICAL & ABSOLUTE TRUTH):
+   - You MUST rely entirely on the AI Model Detections (Local ONNX) output to determine motion status for each frame.
+   - If the ONNX detection indicates "Running" for a frame, the locomotive is DEFINITIVELY IN MOTION (Running Condition). You are FORBIDDEN from reporting it as stationary.
+   - If the ONNX detection indicates "Deadstop" for a frame, it is CONSIDERED STATIONARY (Stationary Condition).
+   - If the ONNX detection indicates "None" or is missing, you MUST critically analyze the footage yourself for motion outside the window or cab vibrations to determine if it is Running.
+   - The ONNX Detection is your primary source of truth for motion. Do NOT attempt to read exact numeric speed from the speedometer dials or digital boxes. Evaluated only the boolean state of "Running" or "Stationary".
+When the train is in motion, check the following: LP AND ALP WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
+🚨 MAJOR VIOLATION (ALP LEAVING SEAT): Pay absolute, critical attention to whether the Assistant Locomotive Pilot (ALP) leaves his designated seat or is absent from his post/seat while the train is in motion. If the ALP is seen standing up, moving away, or is completely absent from his seat during any running period, you MUST explicitly document this as a major Non-Compliance observation.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
 2. Alertness: Is the crew visibly alert?
 3. Nap/Micro-Sleep: Is the crew taking a nap or showing signs of micro-sleep?
@@ -78,15 +75,13 @@ When the train is in motion, check the following: LP AND APL WEAR SKY BLUE SHIRT
 8. Exchange Signals: Is the crew exchanging "ALL RIGHT" signals with station staff and trains in the opposite direction?
 9. Horn Operation: Is the crew operating the horn lever/switch as per requirement (e.g., Whistle Boards)?
 10. Packing: Is the crew involved in packing their belongings?
-11. Leaving Seat: Is the crew leaving their designated place for other activities?
+11. Leaving Seat: Is the crew leaving their designated place for other activities? (e.g., ALP leaving his seat while the train is running is a critical safety breach).
 
 B. Activity Analysis - Stationary Condition
-Detect "Stationary Condition" ONLY if:
-1. DDS Speedometer (PRIMARY): The GREEN DIGITAL box shows "0.0". TRUST THE DIGITAL 0.0 even if the needle looks slightly offset due to parallax.
-2. No Relative Motion: There is NO movement visible through the lookout glass (windscreen).
-3. Speedometer Needles: All analog needles (ESMON/TELPRO/MEDHA) are strictly at zero. 
-4. Controls: Throttle and Reverser are in Neutral.
-WARNING: If the GREEN DIGITAL box shows any value above 0.0, the train is in MOTION. Do NOT declare stationary unless the digital speed is 0.0.
+Detect "Stationary Condition" ONLY if ALL these conditions are met:
+1. Deadstop Confirmation: The Local ONNX Model detects "Deadstop".
+2. No Relative Motion or Vibration: There is NO movement visible through the lookout glass (windscreen). The background outside the window MUST be perfectly still, and there should be NO physical vibration in the locomotive cab. If there is ANY movement or vibration, it is NOT stationary.
+3. Controls: Traction Throttle is at zero and Reverser is in Neutral.
 When the train is stopped, check the following:
 1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
 2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
@@ -108,16 +103,16 @@ The final output must be a structured report with the following elements in this
    - Observation Period: [Start Time] to [End Time]
 
 3. Chronological Event Log (CRITICAL):
-   Provide a detailed timeline log of all notable interactions and the locomotive speed for every analyzed second. Always extract the real "on-screen" burned-in timestamp for each log.
+   Provide a detailed timeline log of all notable interactions and the status of motion (Running/Stationary) for every analyzed second. Always extract the real "on-screen" burned-in timestamp for each log.
    *Example:*
-   - [09:07:44] - 80.5 km/h: ALP raised left hand to call out signal.
-   - [09:12:15] - 10.2 km/h: Loco Pilot seen using control panel.
-   - [09:15:30] - 0.0 km/h: Locomotive in stationary condition.
-   *(List all detected events and speeds in strict chronological order)*
+   - [09:07:44] - Running: ALP raised left hand to call out signal.
+   - [09:12:15] - Running: Loco Pilot seen using control panel.
+   - [09:15:30] - Stationary: Locomotive in stationary condition.
+   *(List all detected events in strict chronological order.)*
 
 4. Detailed Analysis:
    - Mandatory Checkpoints: You MUST explicitly state the following points in this section, regardless of whether it's compliant or not:
-     1. Locomotive Speed: Explicitly report the detected speed from the DDU/DDS screen using the GREEN DIGITAL OCR text as the primary source (e.g., "Speed: 40.5 km/h").
+     1. Motion State: Explicitly report whether the locomotive is in Running or Stationary condition based primarily on the Local ONNX AI Model detections ("Running" vs "Deadstop").
      2. Mobile Phone Usage: If they are not talking on a mobile phone, explicitly state "LP & ALP did not use mobile phone". If they did, document the usage.
      3. Signal Calling: Explicitly state the use of calling out signals with hand gestures or not.
      4. Standstill Condition: Explicitly state whether the reverser and throttle are in neutral condition or not while the loco is in stand still condition.
@@ -238,7 +233,29 @@ export default function App() {
     }
     return "";
   });
+  const [userRoboflowModelId, setUserRoboflowModelId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("CVVRS_ROBOFLOW_MODEL_ID") || "cvvrs_ai_model/2";
+    }
+    return "cvvrs_ai_model/2";
+  });
   const [showSettings, setShowSettings] = useState(false);
+  const [localOnnxBuffer, setLocalOnnxBuffer] = useState<ArrayBuffer | null>(null);
+  const [useLocalOnnx, setUseLocalOnnx] = useState(false);
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("CVVRS_SELECTED_MODEL") || "gemini-3.5-flash";
+    }
+    return "gemini-3.5-flash";
+  });
+  const [tempModel, setTempModel] = useState<string>(selectedModel);
+
+  // Sync tempModel when settings open
+  useEffect(() => {
+    if (showSettings) {
+      setTempModel(selectedModel);
+    }
+  }, [showSettings, selectedModel]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -288,11 +305,15 @@ export default function App() {
     }
   };
 
-  const saveApiKey = (key: string, roboflowKey: string) => {
+  const saveApiKey = (key: string, roboflowKey: string, roboflowModelId: string, model: string) => {
     setUserApiKey(key);
     setUserRoboflowApiKey(roboflowKey);
+    setUserRoboflowModelId(roboflowModelId);
+    setSelectedModel(model);
     localStorage.setItem("CVVRS_USER_API_KEY", key);
     localStorage.setItem("CVVRS_ROBOFLOW_API_KEY", roboflowKey);
+    localStorage.setItem("CVVRS_ROBOFLOW_MODEL_ID", roboflowModelId);
+    localStorage.setItem("CVVRS_SELECTED_MODEL", model);
     setShowSettings(false);
   };
 
@@ -301,16 +322,17 @@ export default function App() {
     "Accessing Video Stream...",
     "Extracting High-Resolution Frames...",
     "Buffering Neural Data...",
+    "Initializing Speed Reconciler...",
     "Finalizing Frame Buffer..."
   ];
 
   const analysisSteps = [
     "Detecting Crew Activities...",
+    "Applying Speed Reconciliation...",
     "Analyzing Compliance Standards...",
     "Comparing with G&SR Rulebook...",
-    "Generating CVVRS Intelligence Report...",
-    "Finalizing Disciplinary Summary...",
-    "Neural Engine Overloaded - Retrying..."
+    "Generating Intelligence Report...",
+    "Finalizing Disciplinary Summary..."
   ];
 
   const loadingSteps = loadingMode === 'extracting' ? extractionSteps : analysisSteps;
@@ -452,9 +474,9 @@ export default function App() {
       const name = file.name;
       await ffmpeg.writeFile(name, await fetchFile(file));
 
-      // Extract 1 frame every intervalSeconds, scale down to max 1280
+      // Extract 1 frame every intervalSeconds, scale down to max 1024
       const fps = (1 / intervalSeconds).toFixed(4);
-      await ffmpeg.exec(['-i', name, '-vf', `fps=${fps},scale=1280:-1`, '-q:v', '5', 'frame_%03d.jpg']);
+      await ffmpeg.exec(['-i', name, '-vf', `fps=${fps},scale=1024:-1`, '-q:v', '8', 'frame_%03d.jpg']);
 
       const frames: { data: string, mimeType: string }[] = [];
       const files = await ffmpeg.listDir('/');
@@ -474,7 +496,7 @@ export default function App() {
               data: btoa(base64),
               mimeType: 'image/jpeg',
            });
-           if (frames.length >= 15) break;
+           if (frames.length >= 10) break;
         }
       }
 
@@ -514,14 +536,19 @@ export default function App() {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           
-          // Maintain original resolution for better AI visibility
-          const scale = 1;
+          // Scale down resolution to max 1280 to prevent XHR payload size errors with proxy
+          const maxDim = 1024;
+          let scale = 1;
+          if (video.videoWidth > maxDim || video.videoHeight > maxDim) {
+            scale = Math.min(maxDim / video.videoWidth, maxDim / video.videoHeight);
+          }
           canvas.width = video.videoWidth * scale;
           canvas.height = video.videoHeight * scale;
 
           // Extract frames at intervals
-          // For very long videos, we cap the number of frames to 15 for speed
-          const step = Math.max(intervalSeconds, duration / 15); 
+          // Capped to 10 frames to avoid AI Studio ProxyUnaryCall size limits (XHR error code 6)
+          const MAX_FRAMES = 10;
+          const step = Math.max(intervalSeconds, duration / MAX_FRAMES);
 
           for (let time = 0; time < duration; time += step) {
             setProgress(Math.min(99, Math.round((time / duration) * 100)));
@@ -545,11 +572,11 @@ export default function App() {
             
             if (ctx) {
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+              const base64 = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
               frames.push({ data: base64, mimeType: 'image/jpeg' });
             }
             
-            if (frames.length >= 15) break;
+            if (frames.length >= 10) break;
           }
 
           setProgress(100);
@@ -660,10 +687,17 @@ export default function App() {
       }
       
       let detectionsText = "";
-      if (userRoboflowApiKey && frames.length > 0) {
+      if (useLocalOnnx && localOnnxBuffer && frames.length > 0) {
+        try {
+          const results = await runLocalModel(localOnnxBuffer, frames);
+          detectionsText = `\nLOCAL ONNX DETECTIONS (ABSOLUTE TRUTH FOR MOTION STATE):\n${results.join('\n')}`;
+        } catch (e) {
+          console.error("Local ONNX error:", e);
+        }
+      } else if (userRoboflowApiKey && frames.length > 0) {
         try {
           const detectionPromises = frames.map(async (frame, i) => {
-            const response = await fetch(`https://detect.roboflow.com/cvvrs_ai_model/2?api_key=${userRoboflowApiKey}`, {
+            const response = await fetch(`https://detect.roboflow.com/${userRoboflowModelId}?api_key=${userRoboflowApiKey}`, {
               method: "POST",
               headers: { "Content-Type": "application/x-www-form-urlencoded" },
               body: frame.data
@@ -704,7 +738,7 @@ export default function App() {
       const promptWithFeedback = `${MASTER_PROMPT}${locoContext}${dateContext}${trainContext}${lpContext}${alpContext}${analyzerContext}${detectionsText}${feedback ? `\n\nAdditional User Feedback to consider: ${feedback}` : ""}${learningContext}`;
 
       const response = await generateContentWithRetry(ai, {
-        model: "gemini-3-flash-preview",
+        model: selectedModel,
         contents: [
           {
             parts: [
@@ -1206,6 +1240,12 @@ export default function App() {
                                 
                                 return (
                                   <div key={idx} className={isNonCompliance ? "text-red-500 font-bold print:text-red-600 [&_*]:!text-red-500 print:[&_*]:!text-red-600 [&_*]:!font-bold [&_strong]:!text-red-500 print:[&_strong]:!text-red-600" : ""}>
+                                    {!isNonCompliance && idx === 0 && (
+                                      <div className="flex items-center gap-2 mb-6 px-3 py-1.5 rounded-lg bg-brand-cyan/10 border border-brand-cyan/20 w-fit no-print">
+                                        <Activity className="w-3.5 h-3.5 text-brand-cyan animate-pulse" />
+                                        <span className="text-[10px] font-bold text-brand-cyan uppercase tracking-wider">Neural Speed Analysis: Strict Mode Active</span>
+                                      </div>
+                                    )}
                                     <Markdown 
                                       remarkPlugins={[remarkGfm]}
                                       rehypePlugins={[rehypeRaw]}
@@ -1475,27 +1515,91 @@ export default function App() {
                         value={userApiKey}
                         onChange={(e) => setUserApiKey(e.target.value)}
                         placeholder="Enter Key or Admin Password..."
-                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-cyan-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono"
+                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-cyan-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono text-white"
                       />
                     </div>
                     
                     <div className="space-y-3 mt-4">
                       <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
-                        Roboflow API Key (CVVRS Model 2)
+                        Roboflow API Key
                       </label>
                       <input 
                         type="password"
                         value={userRoboflowApiKey}
                         onChange={(e) => setUserRoboflowApiKey(e.target.value)}
                         placeholder="Enter Roboflow API Key (Optional)..."
-                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-magenta-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono"
+                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-magenta-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono text-white"
                       />
+                    </div>
+
+                    <div className="space-y-3 mt-4">
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
+                        Roboflow Model Endpoint
+                      </label>
+                      <input 
+                        type="text"
+                        value={userRoboflowModelId}
+                        onChange={(e) => setUserRoboflowModelId(e.target.value)}
+                        placeholder="e.g. cvvrs_ai_model/2"
+                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.03] border border-white/10 focus:border-magenta-500/40 focus:bg-white/[0.05] focus:ring-0 transition-all text-sm font-mono text-white"
+                      />
+                    </div>
+
+                    <div className="space-y-3 mt-4 border-t border-white/10 pt-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={useLocalOnnx} 
+                          onChange={(e) => setUseLocalOnnx(e.target.checked)}
+                          className="rounded bg-white/5 border-white/20 text-cyan-500 focus:ring-cyan-500/30"
+                        />
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Enable Local YOLO ONNX</span>
+                      </label>
+                      
+                      {useLocalOnnx && (
+                        <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                          <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/50 block mb-2">Upload best.onnx</label>
+                          <input 
+                            type="file" 
+                            accept=".onnx"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                  if (e.target?.result) {
+                                    setLocalOnnxBuffer(e.target.result as ArrayBuffer);
+                                  }
+                                };
+                                reader.readAsArrayBuffer(file);
+                              }
+                            }}
+                            className="text-xs text-white/50 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20"
+                          />
+                          {localOnnxBuffer && <p className="text-green-400 text-xs mt-2 text-right">ONNX Model Ready ✓</p>}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-3 mt-4">
+                      <label className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30 ml-1">
+                        AI Model Selection
+                      </label>
+                      <select
+                        value={tempModel}
+                        onChange={(e) => setTempModel(e.target.value)}
+                        className="w-full px-6 py-4 rounded-2xl bg-white/[0.05] border border-white/10 focus:border-cyan-500/40 focus:bg-white/[0.08] focus:ring-0 transition-all text-sm font-medium text-white select-none [&>option]:bg-neutral-900 [&>option]:text-white cursor-pointer"
+                      >
+                        <option value="gemini-3.5-flash">Gemini 3.5 Flash (Default - Fast & Accurate)</option>
+                        <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Recommended for Complex Auditing)</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash Preview (Legacy)</option>
+                      </select>
                     </div>
                   </div>
 
                   <div className="flex gap-4">
                     <button 
-                      onClick={() => saveApiKey(userApiKey, userRoboflowApiKey)}
+                      onClick={() => saveApiKey(userApiKey, userRoboflowApiKey, userRoboflowModelId, tempModel)}
                       className="flex-1 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-lg shadow-cyan-600/20"
                     >
                       Save Configuration
@@ -1504,8 +1608,13 @@ export default function App() {
                       onClick={() => {
                         setUserApiKey("");
                         setUserRoboflowApiKey("");
+                        setUserRoboflowModelId("cvvrs_ai_model/2");
+                        setSelectedModel("gemini-3.5-flash");
+                        setTempModel("gemini-3.5-flash");
                         localStorage.removeItem("CVVRS_USER_API_KEY");
                         localStorage.removeItem("CVVRS_ROBOFLOW_API_KEY");
+                        localStorage.removeItem("CVVRS_ROBOFLOW_MODEL_ID");
+                        localStorage.removeItem("CVVRS_SELECTED_MODEL");
                         setShowSettings(false);
                       }}
                       className="px-6 py-4 bg-white/5 hover:bg-red-500/10 hover:text-red-500 text-white/40 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all border border-white/5"
