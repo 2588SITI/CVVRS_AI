@@ -71,33 +71,45 @@ function iou(box1: number[], box2: number[]) {
 
 // Function to process ONNX detections (nms + conf threshold)
 function processYoloOutput(tensor: ort.Tensor, threshold = 0.5, iouThreshold = 0.45) {
-    // YOLO11 output shape is typically [1, num_classes + 4, 8400]
+    // YOLO11 output shape is typically [1, num_classes + 4, 8400] OR [1, 8400, num_classes + 4]
     const data = tensor.data as Float32Array;
-    const numRows = tensor.dims[1]; // 4 (bbox) + classes
-    const numCols = tensor.dims[2]; // 8400 (anchors)
+    let numRows = tensor.dims[1]; 
+    let numCols = tensor.dims[2]; 
+
+    // Handle transposition if exported differently
+    const isTransposed = numRows > numCols;
+    const numClasses = (isTransposed ? numCols : numRows) - 4;
+    const numAnchors = isTransposed ? numRows : numCols;
 
     let boxes: {classId: number, conf: number, className: string, box: number[]}[] = [];
 
-    // Loop through each anchor (cols)
-    for (let col = 0; col < numCols; col++) {
+    // Loop through each anchor
+    for (let anchorIdx = 0; anchorIdx < numAnchors; anchorIdx++) {
         let maxClassConf = 0;
         let classId = -1;
 
         // Find highest class confidence for this anchor
-        // First 4 rows are cx, cy, w, h
-        for (let row = 4; row < numRows; row++) {
-            const conf = data[row * numCols + col];
+        for (let classIdx = 0; classIdx < numClasses; classIdx++) {
+            const confIdx = isTransposed 
+                ? (anchorIdx * numCols + 4 + classIdx) 
+                : ((4 + classIdx) * numCols + anchorIdx);
+            const conf = data[confIdx];
             if (conf > maxClassConf) {
                 maxClassConf = conf;
-                classId = row - 4;
+                classId = classIdx;
             }
         }
 
         if (maxClassConf > threshold) {
-            const cx = data[0 * numCols + col];
-            const cy = data[1 * numCols + col];
-            const w = data[2 * numCols + col];
-            const h = data[3 * numCols + col];
+            const cxIdx = isTransposed ? (anchorIdx * numCols + 0) : (0 * numCols + anchorIdx);
+            const cyIdx = isTransposed ? (anchorIdx * numCols + 1) : (1 * numCols + anchorIdx);
+            const wIdx = isTransposed ? (anchorIdx * numCols + 2) : (2 * numCols + anchorIdx);
+            const hIdx = isTransposed ? (anchorIdx * numCols + 3) : (3 * numCols + anchorIdx);
+
+            const cx = data[cxIdx];
+            const cy = data[cyIdx];
+            const w = data[wIdx];
+            const h = data[hIdx];
 
             const x1 = cx - w / 2;
             const y1 = cy - h / 2;
@@ -120,6 +132,24 @@ function processYoloOutput(tensor: ort.Tensor, threshold = 0.5, iouThreshold = 0
         const bestBox = boxes[0];
         finalBoxes.push(bestBox);
         boxes = boxes.filter(b => b.classId !== bestBox.classId || iou(bestBox.box, b.box) < iouThreshold);
+    }
+
+    if (finalBoxes.length === 0) {
+        let maxOverallConf = 0;
+        let bestClass = -1;
+        for (let anchorIdx = 0; anchorIdx < numAnchors; anchorIdx++) {
+            for (let classIdx = 0; classIdx < numClasses; classIdx++) {
+                const confIdx = isTransposed 
+                    ? (anchorIdx * numCols + 4 + classIdx) 
+                    : ((4 + classIdx) * numCols + anchorIdx);
+                const conf = data[confIdx];
+                if (conf > maxOverallConf) {
+                    maxOverallConf = conf;
+                    bestClass = classIdx;
+                }
+            }
+        }
+        console.log("No boxes passed threshold. Max confidence found:", maxOverallConf, "for class:", YOLO_CLASSES[bestClass] || bestClass);
     }
 
     return finalBoxes;
@@ -151,8 +181,9 @@ export async function runLocalModel(onnxModelBuffer: ArrayBuffer, base64Images: 
 
             const output = await session.run(feeds);
             const outputTensor = output[session.outputNames[0]];
+            console.log("Output tensor shape:", outputTensor.dims);
 
-            const boxes = processYoloOutput(outputTensor, 0.25, 0.45);
+            const boxes = processYoloOutput(outputTensor, 0.1, 0.45);
             if (boxes.length > 0) {
                 const labels = boxes.map(b => `${b.className} (${Math.round(b.conf * 100)}%)`);
                 results.push(`Frame ${i + 1} Model Detects: ${labels.join(', ')}`);

@@ -31,6 +31,7 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import localforage from "localforage";
 import { runLocalModel } from "./lib/onnxLib";
 import { GoogleGenAI } from "@google/genai";
 import { auth, db, signInWithGoogle } from "./firebase";
@@ -54,15 +55,14 @@ Task:
 Analyze the provided frames from the CVVRS system to detect the equipment in the locomotive cab and the activities of the crew. Generate a detailed "Compliance Summary & Deviation Table" and a summary of corrective measures.
 
 A. Activity Analysis - Running Condition
-Detect "Running Condition" by checking these primary visual indicators. If the ROBOFLOW DETECTIONS text indicates motion, prioritize it:
-1. AI Model Detections (Roboflow / Local ONNX): If the DETECTIONS text contains "DDS SPEEDOMETER IN MOTION" or "Running" class, the locomotive is DEFINITIVELY in MOTION/RUNNING condition. If it shows "Deadstop", it is likely stationary.
+Detect "Running Condition" by checking these primary visual indicators. The ONNX model is the ABSOLUTE SOURCE OF TRUTH for motion:
+1. AI Model Detections (Local ONNX): If the DETECTIONS text contains "Running" class, the locomotive is DEFINITIVELY in MOTION/RUNNING condition. Do NOT look at the throttle or the driver's hands to guess if it is running. A train can be coasting without hands on the throttle. If the ONNX model says Running, it is RUNNING.
 2. Lookout Glass (Windscreen / View Ahead) & Cab Vibrations - CRITICAL FALLBACK: If the speedometer is completely unreadable, you MUST determine if the train is in motion by looking for relative motion between the locomotive cab and the outside world (trees, OHE masts, ground, tracks moving/blurring), or physical vibrations/shaking in the cab. If ANY of these are present, the locomotive is DEFINITIVELY in MOTION/RUNNING condition. Do NOT report stationary if the view outside is changing or the cab is vibrating. If you cannot determine the exact speed, at least explicitly mark the state as "Running (Speed Unknown - Motion Detected)".
-3. Motion State (CRITICAL & ABSOLUTE TRUTH):
-   - You MUST rely entirely on the AI Model Detections (Local ONNX) output to determine motion status for each frame.
-   - If the ONNX detection indicates "Running" for a frame, the locomotive is DEFINITIVELY IN MOTION (Running Condition). You are FORBIDDEN from reporting it as stationary.
-   - If the ONNX detection indicates "Deadstop" for a frame, it is CONSIDERED STATIONARY (Stationary Condition).
-   - If the ONNX detection indicates "None" or is missing, you MUST critically analyze the footage yourself for motion outside the window or cab vibrations to determine if it is Running.
-   - The ONNX Detection is your primary source of truth for motion. Do NOT attempt to read exact numeric speed from the speedometer dials or digital boxes. Evaluated only the boolean state of "Running" or "Stationary".
+3. Motion State (CRITICAL):
+   - You MUST check the AI Model Detections (Local ONNX) output to determine motion status.
+   - If the ONNX detection indicates "Running" for a frame, the locomotive is DEFINITIVELY IN MOTION (Running Condition). You are FORBIDDEN from reporting it as stationary, regardless of what the pilot is doing with the throttle.
+   - If the ONNX detection indicates "Deadstop", "None", or is missing, YOU MUST VERIFY THIS VISUALLY. If you can see clear relative motion outside the window (trees/tracks blurring) or cab vibrations, you MUST OVERRIDE the ONNX detection and report the state as "Running (Motion Detected Visual Override)".
+   - Do NOT attempt to read exact numeric speed from the speedometer dials or digital boxes. Evaluate only the boolean state of "Running" or "Stationary".
 When the train is in motion, check the following: LP AND ALP WEAR SKY BLUE SHIRT AND NAVY BLUE TROUSER SO MAKE REPORT ONLY OF THAT DRESS CODE STAFF. BUT IN WINTER HE MAY WEAR JACKET.
 🚨 MAJOR VIOLATION (ALP LEAVING SEAT): Pay absolute, critical attention to whether the Assistant Locomotive Pilot (ALP) leaves his designated seat or is absent from his post/seat while the train is in motion. If the ALP is seen standing up, moving away, or is completely absent from his seat during any running period, you MUST explicitly document this as a major Non-Compliance observation.
 1. Signal Calling (CRITICAL EVENT LOGGING): Is the crew calling out signal aspects with the proper confirmed hand gesture (e.g., raising the left or right hand)? You MUST LOG the exact visible on-screen timestamp (e.g., [09:07:44]) from the CVVRS footage for EVERY single instance where a hand is raised for signal calling.
@@ -78,10 +78,11 @@ When the train is in motion, check the following: LP AND ALP WEAR SKY BLUE SHIRT
 11. Leaving Seat: Is the crew leaving their designated place for other activities? (e.g., ALP leaving his seat while the train is running is a critical safety breach).
 
 B. Activity Analysis - Stationary Condition
-Detect "Stationary Condition" ONLY if ALL these conditions are met:
-1. Deadstop Confirmation: The Local ONNX Model detects "Deadstop".
+Detect "Stationary Condition" ONLY if the ONNX model explicitly states it is stationary or there is absolutely no movement.
+1. Deadstop Confirmation: The Local ONNX Model detects "Deadstop" (or is missing) AND you visually confirm there is NO movement.
 2. No Relative Motion or Vibration: There is NO movement visible through the lookout glass (windscreen). The background outside the window MUST be perfectly still, and there should be NO physical vibration in the locomotive cab. If there is ANY movement or vibration, it is NOT stationary.
-3. Controls: Traction Throttle is at zero and Reverser is in Neutral.
+3. MOTION IS THE ONLY FACTOR: DO NOT assume the train is stationary just because the crew is not holding the throttle or reverser. A train can be coasting. The AI Model detection (Running vs Deadstop) is the ONLY truth for motion.
+
 When the train is stopped, check the following:
 1. Loco Check (ALP): Is the ALP getting down from the cab to check the locomotive (under-gear/equipment)?
 2. SA-9 Application: Is the Loco Pilot applying the SA-9 (Independent Brake) when the train comes to a halt?
@@ -257,6 +258,20 @@ export default function App() {
     }
   }, [showSettings, selectedModel]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Load persisted ONNX model and preference if available
+    if (typeof window !== 'undefined') {
+      const storedUseOnnx = localStorage.getItem("CVVRS_USE_LOCAL_ONNX") === "true";
+      if (storedUseOnnx) setUseLocalOnnx(true);
+      
+      localforage.getItem<ArrayBuffer>("CVVRS_LOCAL_ONNX_BUFFER").then((buffer) => {
+        if (buffer) {
+          setLocalOnnxBuffer(buffer);
+        }
+      }).catch(err => console.error("Failed to load persisted ONNX model:", err));
+    }
+  }, []);
 
   useEffect(() => {
     // Auth Listener
@@ -691,8 +706,9 @@ export default function App() {
         try {
           const results = await runLocalModel(localOnnxBuffer, frames);
           detectionsText = `\nLOCAL ONNX DETECTIONS (ABSOLUTE TRUTH FOR MOTION STATE):\n${results.join('\n')}`;
-        } catch (e) {
+        } catch (e: any) {
           console.error("Local ONNX error:", e);
+          detectionsText = `\nLOCAL ONNX ERROR: ${e.message}\n`;
         }
       } else if (userRoboflowApiKey && frames.length > 0) {
         try {
@@ -850,7 +866,15 @@ export default function App() {
                 CVVRS <span className="text-brand-cyan">AI</span>
                 <span className="text-[8px] font-black text-brand-cyan/40 uppercase tracking-[0.2em] border border-brand-cyan/20 px-2 py-0.5 rounded-full bg-brand-cyan/5 italic">Visionary: CELE SIR</span>
               </h1>
-              <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em]">Neural Analysis Engine</p>
+              <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.3em] flex items-center gap-2 mt-1">
+                Neural Analysis Engine
+                {useLocalOnnx && localOnnxBuffer && (
+                  <span className="inline-flex items-center gap-1 text-[9px] font-black text-brand-cyan bg-brand-cyan/10 px-2 py-0.5 rounded-full border border-brand-cyan/30 shadow-[0_0_10px_rgba(0,242,255,0.2)]">
+                    <CheckCircle2 className="w-3 h-3" />
+                    CUSTOM TRAINED LOCAL YOLO ONNX AI MODEL
+                  </span>
+                )}
+              </p>
             </div>
           </div>
             <div className="hidden md:flex items-center gap-8">
@@ -905,7 +929,7 @@ export default function App() {
                 Neural <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-cyan via-brand-blue to-brand-magenta">Vision</span> System.
               </h2>
               <p className="text-white/40 text-lg leading-relaxed font-medium max-w-md">
-                High-speed parallel processing for large-scale locomotive crew monitoring and compliance.
+                High-speed parallel processing for large-scale locomotive crew monitoring and compliance, powered by our Custom Trained Local YOLO ONNX AI MODEL.
               </p>
               <p className="text-brand-magenta/60 text-xs tracking-[0.2em] uppercase font-black italic mt-4">
                 Conceptualised and Designed by ADEE TRO BL
@@ -1550,10 +1574,15 @@ export default function App() {
                         <input 
                           type="checkbox" 
                           checked={useLocalOnnx} 
-                          onChange={(e) => setUseLocalOnnx(e.target.checked)}
+                          onChange={(e) => {
+                            setUseLocalOnnx(e.target.checked);
+                            if (typeof window !== 'undefined') {
+                              localStorage.setItem("CVVRS_USE_LOCAL_ONNX", String(e.target.checked));
+                            }
+                          }}
                           className="rounded bg-white/5 border-white/20 text-cyan-500 focus:ring-cyan-500/30"
                         />
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Enable Local YOLO ONNX</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400">Enable Custom Trained Local YOLO ONNX AI MODEL</span>
                       </label>
                       
                       {useLocalOnnx && (
@@ -1566,9 +1595,15 @@ export default function App() {
                               const file = e.target.files?.[0];
                               if (file) {
                                 const reader = new FileReader();
-                                reader.onload = (e) => {
+                                reader.onload = async (e) => {
                                   if (e.target?.result) {
-                                    setLocalOnnxBuffer(e.target.result as ArrayBuffer);
+                                    const buffer = e.target.result as ArrayBuffer;
+                                    setLocalOnnxBuffer(buffer);
+                                    try {
+                                      await localforage.setItem("CVVRS_LOCAL_ONNX_BUFFER", buffer);
+                                    } catch (err) {
+                                      console.error("Failed to save ONNX to local storage:", err);
+                                    }
                                   }
                                 };
                                 reader.readAsArrayBuffer(file);
